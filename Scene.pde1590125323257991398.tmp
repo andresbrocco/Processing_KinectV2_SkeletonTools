@@ -63,7 +63,7 @@ public class Scene{
       for (Skeleton skeleton:this.activeSkeletons.values()) {
         this.drawSkeleton(skeleton, drawMeasuredSkeletons, drawJointOrientation, drawBoneRelativeOrientation);
         skeleton.drawHandRadius();
-        //skeleton.drawHandStates();
+        skeleton.drawHandState();
       }
     }
     this.drawKinectFieldOfView();

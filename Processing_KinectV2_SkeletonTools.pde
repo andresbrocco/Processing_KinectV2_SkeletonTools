@@ -1,7 +1,7 @@
 /*
   Fazer cabeçalho em todos
 */
-boolean drawSkeletonTool = false;
+boolean drawSkeletonTool = true;
 Scene scene = new Scene();
 
 int pdPort = 3000;
@@ -10,15 +10,19 @@ Communication communication = new Communication("127.0.0.1", pdPort, myPort);
 
 void setup()
 {
+  frameRate(scene.frameRate_);
   size(600, 600, P3D);
   scene.init();
 }
 
 void draw()
 {
+  for(Skeleton skeleton:scene.activeSkeletons.values()){
+    println("distanceBetweenHands: "+ skeleton.features.distanceBetweenHands);
+  }
   scene.update();
   if(drawSkeletonTool){
-    scene.drawOnScreen(true, true, true); // drawMeasuredSkeletons, drawJointOrientation, drawBoneRelativeOrientation  
+    scene.drawOnScreen(false, false, true); // drawMeasuredSkeletons, drawJointOrientation, drawBoneRelativeOrientation  
   } else{
     // Your animation algorithm should be placed here
     background(color(128));
@@ -31,6 +35,7 @@ void keyPressed(){
   if(key == 'f'){
     if(scene.floor.isCalibrating){
       scene.floor.isCalibrating = false;
+      scene.floor.isCalibrated = true;
       println("Floor calibration complete!");
     }else{
       thread("calibrateFloor");

@@ -11,6 +11,7 @@ public class Joint{
   private float distanceBetweenMeasuredPositionAndEstimatedPositionStandardDeviation; 
   private PVector estimatedPosition;
   private PVector estimatedVelocity;
+  private PVector estimatedAcceleration;
   private Quaternion measuredOrientation;
   private float averageAngleBetweenMeasuredOrientationAndEstimatedOrientation; // theta
   private float angleBetweenMeasuredOrientationAndEstimatedOrientationStandardDeviation; // std of theta: angle between measuredOrientation and currentEstimatedOrientation. 
@@ -113,14 +114,16 @@ public class Joint{
     
     PVector newEstimatedPosition;
     if(jointId == 1){ // SpineMid
-      newEstimatedPosition = PVector.lerp(PVector.add(this.estimatedPosition, PVector.mult(this.estimatedVelocity, currentDeltaT)), this.measuredPosition, adjustedConfidenceParameters[0]);
+      newEstimatedPosition = PVector.lerp(PVector.add(this.estimatedPosition, PVector.mult(this.estimatedVelocity, dampingFactor*currentDeltaT)), this.measuredPosition, adjustedConfidenceParameters[0]);
     } 
     else{ // Common Joints
-      newEstimatedPosition = PVector.add(this.estimatedPosition, PVector.mult(this.estimatedVelocity, currentDeltaT)).mult(adjustedConfidenceParameters[1])
+      newEstimatedPosition = PVector.add(this.estimatedPosition, PVector.mult(this.estimatedVelocity, dampingFactor*currentDeltaT)).mult(adjustedConfidenceParameters[1])
                                             .add(PVector.add(this.parentJoint.estimatedPosition, PVector.mult(this.parentBone.currentEstimatedDirection, this.parentBone.estimatedLength)).mult(adjustedConfidenceParameters[2]))
                                             .add(PVector.mult(this.measuredPosition, adjustedConfidenceParameters[0]));
     }
-    this.estimatedVelocity = PVector.sub(newEstimatedPosition, this.estimatedPosition).div(currentDeltaT).mult(dampingFactor);
+    PVector newEstimatedVelocity = PVector.sub(newEstimatedPosition, this.estimatedPosition).div(currentDeltaT);
+    this.estimatedAcceleration = PVector.sub(newEstimatedVelocity, this.estimatedVelocity).div(currentDeltaT);
+    this.estimatedVelocity = newEstimatedVelocity;
     this.estimatedPosition = newEstimatedPosition;
   }
   

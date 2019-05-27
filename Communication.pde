@@ -6,6 +6,7 @@ public class Communication{
   private OscP5 oscP5;
   private NetAddress pdAddress;
   
+  
   public Communication(String pdIp, int pdPort, int myPort){
     this.oscP5 = new OscP5(this, myPort);
     this.pdAddress = new NetAddress(pdIp, pdPort); //localhost: "127.0.0.1" "192.168.15.16" // "192.168.15.1"
@@ -13,10 +14,8 @@ public class Communication{
   
   public void sendScene(Scene scene){
     if(!scene.activeSkeletons.isEmpty()){
-      Iterator<HashMap.Entry<Integer, Skeleton>> activeSkeletonsIterator = scene.activeSkeletons.entrySet().iterator();
-      while (activeSkeletonsIterator.hasNext()) {
-        HashMap.Entry<Integer, Skeleton> entry = activeSkeletonsIterator.next();
-        this.sendKinectSkeleton(entry.getValue());
+      for(Skeleton skeleton:scene.activeSkeletons.values()){
+        this.sendKinectSkeleton(skeleton);
       }
     }
   }
@@ -24,9 +23,6 @@ public class Communication{
   private void sendKinectSkeleton(Skeleton skeleton){ 
     OscMessage messageToPd = new OscMessage("/indexColor:");
     messageToPd.add(skeleton.indexColor);
-    this.oscP5.send(messageToPd, pdAddress);
-    messageToPd = new OscMessage("/isTracked:");
-    messageToPd.add(skeleton.isTracked);
     this.oscP5.send(messageToPd, pdAddress);
     
     messageToPd = new OscMessage("/handStates:");

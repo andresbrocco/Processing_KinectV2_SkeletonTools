@@ -323,6 +323,6 @@ class Floor{
 }
 
 void calibrateFloor(){ // This method exists to make possible to calibrate on another thread other than the draw() loop.
-  scene.floor.timedCalibration();
-  //scene.floor.controlledCalibration();
+  //scene.floor.timedCalibration();
+  scene.floor.controlledCalibration();
 }
