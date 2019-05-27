@@ -67,7 +67,7 @@ public class Skeleton{
     this.features = new Features(this);
   }
   
-  public void update(KSkeleton kSkeleton, float currentDeltaT, float previousDeltaT){ //<>//
+  public void update(KSkeleton kSkeleton, float currentDeltaT, float previousDeltaT){ //<>// //<>//
     this.isTracked = kSkeleton.isTracked(); // dumb information, because is always true.
     this.measuredHandStates[0] = kSkeleton.getLeftHandState();
     this.measuredHandStates[1] = kSkeleton.getRightHandState();
@@ -94,10 +94,10 @@ public class Skeleton{
     return rgb;
   }
   
-  private void smoothSkeleton(float currentDeltaT, float previousDeltaT, float dampingFactor){  //<>//
+  private void smoothSkeleton(float currentDeltaT, float previousDeltaT, float dampingFactor){  //<>// //<>//
     this.joints[1].calculateEstimates(this.confidenceParameters, currentDeltaT, previousDeltaT, dampingFactor); // trigger the chain reaction by calling the SpineMid to be calculated.
     this.smoothHandRadius(this.alpha);
-}
+  }
   
   private void smoothHandRadius(float alpha){
     for(int h=0; h<2; h++){

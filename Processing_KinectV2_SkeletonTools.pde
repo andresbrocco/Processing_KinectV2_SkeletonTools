@@ -1,17 +1,77 @@
 /*
   Fazer cabeçalho em todos
 */
+boolean drawSkeletonTool = false;
+Scene scene = new Scene();
+
+int pdPort = 3000;
+int myPort = 3001;
+Communication communication = new Communication("127.0.0.1", pdPort, myPort);
 
 void setup()
 {
   size(600, 600, P3D);
-  frameRate(scene.frameRate_);
   scene.init();
 }
 
 void draw()
 {
   scene.update();
-  scene.drawOnScreen(false, false, true); // drawMeasuredSkeletons, drawJointOrientation, drawBoneRelativeOrientation
+  if(drawSkeletonTool){
+    scene.drawOnScreen(true, true, true); // drawMeasuredSkeletons, drawJointOrientation, drawBoneRelativeOrientation  
+  } else{
+    // Your animation algorithm should be placed here
+    background(color(128));
+  }
   communication.sendScene(scene);
+}
+
+void keyPressed(){
+  // Press f to enter floor calibration process
+  if(key == 'f'){
+    if(scene.floor.isCalibrating){
+      scene.floor.isCalibrating = false;
+      println("Floor calibration complete!");
+    }else{
+      thread("calibrateFloor");
+    }
+  }
+  // Press d to draw Skeleton Tool
+  if(key == 'd'){
+    if(drawSkeletonTool){
+      drawSkeletonTool = false;
+      println("drawSkeletonTool disabled");
+    }else{
+      drawSkeletonTool = true;
+      println("drawSkeletonTool enabled");
+    }
+  }
+  if(scene.floor.isWaitingForUser && (key==ENTER || key==RETURN)){
+    scene.floor.isCalibrating  = true;
+  }
+}
+
+void mouseDragged() {
+  if(mouseButton == CENTER){
+    scene.cameraRotX = scene.cameraRotX - (mouseY - pmouseY)*PI/height;
+    scene.cameraRotY = scene.cameraRotY - (mouseX - pmouseX)*PI/width;
+  }
+  if(mouseButton == LEFT){
+    scene.cameraTransX = scene.cameraTransX + (mouseX - pmouseX);
+    scene.cameraTransY = scene.cameraTransY + (mouseY - pmouseY);
+  }
+  println("RotX: "+scene.cameraRotX);
+  println("RotY: "+scene.cameraRotY);
+  println("cameraTransX: "+scene.cameraTransX);
+  println("cameraTransY: "+scene.cameraTransY);
+}
+
+void mouseWheel(MouseEvent event) {
+  float zoom = event.getCount();
+  if(zoom < 0){
+    scene.cameraTransZ = scene.cameraTransZ + 30;
+  }else{
+    scene.cameraTransZ = scene.cameraTransZ - 30;
+  }
+  println("cameraTransZ: "+scene.cameraTransZ);
 }

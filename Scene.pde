@@ -1,10 +1,8 @@
-Scene scene = new Scene();
 import KinectPV2.*;
 
 KinectPV2 kinect = new KinectPV2(this);
 
 public class Scene{
-  private float frameRate_ = 10;
   private float cameraTransX = 600;
   private float cameraTransY = 420;
   private float cameraTransZ = -60;
@@ -18,7 +16,7 @@ public class Scene{
   public Floor floor;
   
   public Scene(){
-    this.currentDeltaT = 1/this.frameRate_; // static deltaT
+    this.currentDeltaT = 1/frameRate; // static deltaT
     this.previousDeltaT = this.currentDeltaT; // static deltaT
     this.floor = new Floor(this);
   }
@@ -29,6 +27,7 @@ public class Scene{
   }
   
   public void update(){
+    this.currentDeltaT = 1/frameRate;
     ArrayList<KSkeleton> kSkeletonArray =  kinect.getSkeleton3d();
     for (int bodyNumber = 0; bodyNumber < kSkeletonArray.size(); bodyNumber++){
       KSkeleton kSkeleton = kSkeletonArray.get(bodyNumber);
@@ -165,29 +164,4 @@ public class Scene{
     //skeleton.drawHandStates();
     //skeleton.drawHandRadius();
   }
-}
-
-void mouseDragged() {
-  if(mouseButton == CENTER){
-    scene.cameraRotX = scene.cameraRotX - (mouseY - pmouseY)*PI/height;
-    scene.cameraRotY = scene.cameraRotY - (mouseX - pmouseX)*PI/width;
-  }
-  if(mouseButton == LEFT){
-    scene.cameraTransX = scene.cameraTransX + (mouseX - pmouseX);
-    scene.cameraTransY = scene.cameraTransY + (mouseY - pmouseY);
-  }
-  println("RotX: "+scene.cameraRotX);
-  println("RotY: "+scene.cameraRotY);
-  println("cameraTransX: "+scene.cameraTransX);
-  println("cameraTransY: "+scene.cameraTransY);
-}
-
-void mouseWheel(MouseEvent event) {
-  float zoom = event.getCount();
-  if(zoom < 0){
-    scene.cameraTransZ = scene.cameraTransZ + 30;
-  }else{
-    scene.cameraTransZ = scene.cameraTransZ - 30;
-  }
-  println("cameraTransZ: "+scene.cameraTransZ);
 }

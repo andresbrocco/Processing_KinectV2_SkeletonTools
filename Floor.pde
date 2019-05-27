@@ -322,22 +322,7 @@ class Floor{
   }
 }
 
-void keyPressed(){
-  // Press f to enter floor calibration process
-  if(key == 'f'){
-    if(scene.floor.isCalibrating){
-      scene.floor.isCalibrating = false;
-      println("Floor calibration complete!");
-    }else{
-      thread("calibrateFloor");
-    }
-  }
-  if(scene.floor.isWaitingForUser && (key==ENTER || key==RETURN)){
-    scene.floor.isCalibrating  = true;
-  }
-}
-
-void calibrateFloor(){
+void calibrateFloor(){ // This method exists to make possible to calibrate on another thread other than the draw() loop.
   scene.floor.timedCalibration();
   //scene.floor.controlledCalibration();
 }

@@ -1,11 +1,6 @@
 import oscP5.*;
 import netP5.*;
 import java.util.Iterator;
-
-int pdPort = 3000;
-int myPort = 3001;
-
-Communication communication = new Communication("127.0.0.1", pdPort, myPort);
   
 public class Communication{
   private OscP5 oscP5;
