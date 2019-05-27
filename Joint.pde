@@ -33,12 +33,12 @@ public class Joint{
     this.receiveNewMeasurements(kJoint);
     this.estimatedPosition = this.measuredPosition;
     this.averageDistanceBetweenMeasuredPositionAndEstimatedPosition = 0.05; // measurement error in meters
-    this.distanceBetweenMeasuredPositionAndEstimatedPositionStandardDeviation = 0.025; // in meters. puro chute!
+    this.distanceBetweenMeasuredPositionAndEstimatedPositionStandardDeviation = 0.025; // in meters. Pure guess!
     this.estimatedVelocity = new PVector(0,0,0);
     this.currentEstimatedOrientation = this.measuredOrientation;
     this.previousEstimatedOrientation = this.currentEstimatedOrientation;
-    this.averageAngleBetweenMeasuredOrientationAndEstimatedOrientation = 1; // in radians. puro chute! 
-    this.angleBetweenMeasuredOrientationAndEstimatedOrientationStandardDeviation = 1; // em radianos. puro chute! talvez comecar em zero deixe instavel...
+    this.averageAngleBetweenMeasuredOrientationAndEstimatedOrientation = 1; // in radians. Pure guess! 
+    this.angleBetweenMeasuredOrientationAndEstimatedOrientationStandardDeviation = 1; // em radianos. Pure guess!
   }
   
   public void addChildBone(Bone childBone){
@@ -169,7 +169,7 @@ public class Joint{
     this.measuredDirectionZ = qMult(qMult(this.measuredOrientation, new Quaternion(0, 0, 0, 1)), qConjugate(this.measuredOrientation)).vector; 
   }
   
-  public float distanceToFloor(){
+  public float distanceToFloor(){ // Shall be deprecated
     return this.skeleton.scene.floor.plane.distanceTo(this.estimatedPosition);
   }
   

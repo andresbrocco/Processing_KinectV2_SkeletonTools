@@ -17,7 +17,7 @@ void setup()
 
 void draw()
 {
-  for(Skeleton skeleton:scene.activeSkeletons.values()){
+  for(Skeleton skeleton:scene.activeSkeletons.values()){ //example of consulting feature
     println("distanceBetweenHands: "+ skeleton.features.distanceBetweenHands);
   }
   scene.update();
@@ -65,10 +65,6 @@ void mouseDragged() {
     scene.cameraTransX = scene.cameraTransX + (mouseX - pmouseX);
     scene.cameraTransY = scene.cameraTransY + (mouseY - pmouseY);
   }
-  println("RotX: "+scene.cameraRotX);
-  println("RotY: "+scene.cameraRotY);
-  println("cameraTransX: "+scene.cameraTransX);
-  println("cameraTransY: "+scene.cameraTransY);
 }
 
 void mouseWheel(MouseEvent event) {
@@ -78,5 +74,4 @@ void mouseWheel(MouseEvent event) {
   }else{
     scene.cameraTransZ = scene.cameraTransZ - 30;
   }
-  println("cameraTransZ: "+scene.cameraTransZ);
 }

@@ -1,6 +1,6 @@
 public class Skeleton{
   private Scene scene;
-  private int indexColor = 0; // Which body is it (color = - M*255*256^2 - C*255*256 - Y*255 -1)
+  private int indexColor; // Which body is it (color = - M*255*256^2 - C*255*256 - Y*255 -1)
   private int[] skeletonColorRGB = new int[3]; // in RGB
   private int appearedLastInFrame = 0;
   private float alpha = 0.33; // alpha = confidence of new measurement
@@ -16,31 +16,30 @@ public class Skeleton{
   private Bone[] bones = new Bone[24];
   public Features features;
   private int[][] skeletonConnections = {// {boneId, parentJointId, childJointId}
-                                {0 , 1 , 0 }, // SpineMid - SpineBase 
-                                {1 , 1 , 20}, // SpineMid - SpineShoulder
-                                {2 , 20, 2 }, // SpineShoulder - Neck
-                                {3 , 2 , 3 }, // Neck - Head
-                                {4 , 20, 4 }, // SpineShoulder - ShoulderLeft
-                                {5 , 4 , 5 }, // ShoulderLeft - ElbowLeft
-                                {6 , 5 , 6 }, // ElbowLeft - WristLeft
-                                {7 , 6 , 7 }, // WristLeft - HandLeft
-                                {8 , 20, 8 }, // SpineShoulder - ShoulderRight
-                                {9 , 8 , 9 }, // ShoulderRight - ElbowRight
-                                {10, 9 , 10}, // ElbowRight - WristRight
-                                {11, 10, 11}, // WristRight - HandRight
-                                {12, 0 , 12}, // SpineBase - HipLeft
-                                {13, 12, 13}, // HipLeft - KneeLeft
-                                {14, 13, 14}, // KneeLeft - AnkleLeft
-                                {15, 14, 15}, // AnkleLeft - FootLeft
-                                {16, 0 , 16}, // SpineBase - HipRight
-                                {17, 16, 17}, // HipRight - KneeRight
-                                {18, 17, 18}, // KneeRight - AnkleRight
-                                {19, 18, 19}, // AnkleRight - FootRight
-                                {20, 7 , 21}, // HandLeft - HandTipLeft
-                                {21, 6 , 22}, // WristLeft - ThumbLeft
-                                {22, 11, 23}, // HandRight - HandTipRight
-                                {23, 10, 24}, // WristRight - ThumbRight
-                                {24, -1, 1 }};// ----------Not-A-Bone-----------
+                                {0 , SPINE_MID, SPINE_BASE}, 
+                                {1 , SPINE_MID, SPINE_SHOULDER}, 
+                                {2 , SPINE_SHOULDER, NECK}, 
+                                {3 , NECK , HEAD},
+                                {4 , SPINE_SHOULDER, SHOULDER_LEFT}, 
+                                {5 , SHOULDER_LEFT , ELBOW_LEFT},
+                                {6 , ELBOW_LEFT, WRIST_LEFT }, 
+                                {7 , WRIST_LEFT, HAND_LEFT},
+                                {8 , SPINE_SHOULDER, SHOULDER_RIGHT}, 
+                                {9 , SHOULDER_RIGHT, ELBOW_RIGHT}, 
+                                {10, ELBOW_RIGHT, WRIST_RIGHT}, 
+                                {11, WRIST_RIGHT, HAND_RIGHT}, 
+                                {12, SPINE_BASE , HIP_LEFT}, 
+                                {13, HIP_LEFT, KNEE_LEFT}, 
+                                {14, KNEE_LEFT, ANKLE_LEFT},
+                                {15, ANKLE_LEFT, FOOT_LEFT},
+                                {16, SPINE_BASE, HIP_RIGHT},
+                                {17, HIP_RIGHT, KNEE_RIGHT},
+                                {18, KNEE_RIGHT, ANKLE_RIGHT},
+                                {19, ANKLE_RIGHT, FOOT_RIGHT},
+                                {20, HAND_LEFT , HAND_TIP_LEFT},
+                                {21, WRIST_LEFT , THUMB_LEFT}, 
+                                {22, HAND_RIGHT, HAND_TIP_RIGHT}, 
+                                {23, WRIST_RIGHT, THUMB_RIGHT}};
                       
   public Skeleton(KSkeleton kSkeleton, Scene scene){
     this.scene = scene;
@@ -137,13 +136,13 @@ public class Skeleton{
       sphereDetail((int)(sphereRadius*2/3)+3);
       pushMatrix();
       if(h==0){ // left hand
-        translate(reScaleX(this.joints[7].estimatedPosition.x),
-                  reScaleY(this.joints[7].estimatedPosition.y),
-                  reScaleZ(this.joints[7].estimatedPosition.z));
+        translate(reScaleX(this.joints[HAND_LEFT].estimatedPosition.x),
+                  reScaleY(this.joints[HAND_LEFT].estimatedPosition.y),
+                  reScaleZ(this.joints[HAND_LEFT].estimatedPosition.z));
       } else{ // right hand
-        translate(reScaleX(this.joints[11].estimatedPosition.x),
-                  reScaleY(this.joints[11].estimatedPosition.y),
-                  reScaleZ(this.joints[11].estimatedPosition.z));
+        translate(reScaleX(this.joints[HAND_RIGHT].estimatedPosition.x),
+                  reScaleY(this.joints[HAND_RIGHT].estimatedPosition.y),
+                  reScaleZ(this.joints[HAND_RIGHT].estimatedPosition.z));
       }
       sphere(sphereRadius);
       popMatrix();
@@ -176,14 +175,14 @@ public class Skeleton{
       
       if(h==0){ // left hand
         println("leftHandState: "+ this.measuredHandStates[h]);
-        translate(reScaleX(this.joints[7].estimatedPosition.x),
-                  reScaleY(this.joints[7].estimatedPosition.y),
-                  reScaleZ(this.joints[7].estimatedPosition.z));
+        translate(reScaleX(this.joints[HAND_LEFT].estimatedPosition.x),
+                  reScaleY(this.joints[HAND_LEFT].estimatedPosition.y),
+                  reScaleZ(this.joints[HAND_LEFT].estimatedPosition.z));
       } else{ // right hand
         //println("rightHandState: "+ this.measuredHandStates[h]);
-        translate(reScaleX(this.joints[11].estimatedPosition.x),
-                  reScaleY(this.joints[11].estimatedPosition.y),
-                  reScaleZ(this.joints[11].estimatedPosition.z));
+        translate(reScaleX(this.joints[HAND_RIGHT].estimatedPosition.x),
+                  reScaleY(this.joints[HAND_RIGHT].estimatedPosition.y),
+                  reScaleZ(this.joints[HAND_RIGHT].estimatedPosition.z));
       }
       sphere(sphereRadius);
       popMatrix();

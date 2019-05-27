@@ -10,7 +10,7 @@ class Features{
     this.updateFeatures();
   }
   
-  public void updateFeatures(){
+  public void updateFeatures(){ // substitute indexes by respective joint name from "skeletonConstants" tab.
     this.legAngle[0] = PVector.angleBetween(PVector.sub(skeleton.joints[13].estimatedPosition, skeleton.joints[14].estimatedPosition), PVector.sub(skeleton.joints[12].estimatedPosition, skeleton.joints[13].estimatedPosition));
     this.legAngle[1] = PVector.angleBetween(PVector.sub(skeleton.joints[17].estimatedPosition, skeleton.joints[18].estimatedPosition), PVector.sub(skeleton.joints[16].estimatedPosition, skeleton.joints[17].estimatedPosition));
     this.shoulderAngle[0] = PVector.angleBetween(PVector.sub(skeleton.joints[1].estimatedPosition, skeleton.joints[20].estimatedPosition), PVector.sub(skeleton.joints[5].estimatedPosition, skeleton.joints[4].estimatedPosition));
