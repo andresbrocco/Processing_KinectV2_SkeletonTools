@@ -200,7 +200,7 @@ class Floor{
     }
   }
   
-  public PVector toFloorCoordinateSystem(PVector globalPosition){
+  public PVector toFloorCoordinateSystem(PVector globalPosition){ // this method was not tested.
     PVector localPosition;
     if(this.isCalibrated){
       Quaternion auxiliar = new Quaternion(0, PVector.sub(globalPosition, this.averageFeetPosition));

@@ -1,11 +1,28 @@
+/**
+ * Method to convert X dimensions from real world to screen dimensions (meters to pixels)
+ * @param meters real world dimension
+ * @return pixels screen dimension
+ */
 float reScaleX(float meters){
   float horizontalMargin = max(width-height, 0)/2;
   return map(meters, -2, 2, horizontalMargin-width/2, width/2-horizontalMargin);
 }
+
+/**
+ * Method to convert Y dimensions from real world to screen dimensions (meters to pixels)
+ * @param meters real world dimension
+ * @return pixels screen dimension
+ */
 float reScaleY(float meters){
   float verticalMargin = max(height-width, 0)/2;
   return map(meters, -2, 2, verticalMargin-height/2, height/2-verticalMargin);
 }
+
+/**
+ * Method to convert Z dimensions from real world to screen dimensions (meters to pixels)
+ * @param meters real world dimension
+ * @return pixels screen dimension
+ */
 float reScaleZ(float meters){
   return map(meters, 0, 4, 0, min(width, height));
 }

@@ -1,5 +1,5 @@
 /*
-  Fazer cabeçalho em todos
+  ToDo: JavaDoc
 */
 boolean drawSkeletonTool = true;
 Scene scene = new Scene();
@@ -20,6 +20,7 @@ void draw()
   for(Skeleton skeleton:scene.activeSkeletons.values()){ //example of consulting feature
     //println("distanceBetweenHands: "+ skeleton.features.distanceBetweenHands);
   }
+  
   scene.update();
   if(drawSkeletonTool){
     scene.draw(true, true, true, true, false); // measuredSkeletons, jointOrientation, boneRelativeOrientation, handRadius, handStates
