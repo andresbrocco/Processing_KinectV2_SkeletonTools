@@ -24,7 +24,7 @@ class Features{
     
     
     // To get orientations and positions relative to the floor coordinate system, use the floor method:
-    this.leftHhandPositionLocal = this.skeleton.scene.floor.toLocalCoordinateSystem(this.skeleton.joints[HAND_LEFT].estimatedPosition);
-    this.leftHhandOrientationLocal = this.skeleton.scene.floor.toLocalCoordinateSystem(this.skeleton.joints[HAND_LEFT].estimatedOrientation);
+    this.leftHhandPositionLocal = this.skeleton.scene.floor.toFloorCoordinateSystem(this.skeleton.joints[HAND_LEFT].estimatedPosition);
+    this.leftHhandOrientationLocal = this.skeleton.scene.floor.toFloorCoordinateSystem(this.skeleton.joints[HAND_LEFT].estimatedOrientation);
   }
 }

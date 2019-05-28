@@ -18,6 +18,11 @@ public class Quaternion{
     this.vector = new PVector(x, y, z);
   }
   
+  public Quaternion(float real, PVector vector){
+    this.real = real;
+    this.vector = vector;
+  }
+  
   public Quaternion getCopy(){
     Quaternion qCopy = new Quaternion(0,0,0,0);
     qCopy.real = this.real;

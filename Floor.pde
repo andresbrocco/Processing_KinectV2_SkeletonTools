@@ -200,17 +200,18 @@ class Floor{
     }
   }
   
-  public PVector toLocalCoordinateSystem(PVector globalPosition){
+  public PVector toFloorCoordinateSystem(PVector globalPosition){
     PVector localPosition;
     if(this.isCalibrated){
-      localPosition = PVector.sub(globalPosition, this.averageFeetPosition);
+      Quaternion auxiliar = new Quaternion(0, PVector.sub(globalPosition, this.averageFeetPosition));
+      localPosition = qMult(this.orientation, qMult(auxiliar, qConjugate(this.orientation))).vector;
     } else{
       localPosition = globalPosition;
     }
     return localPosition;
   }
   
-  public Quaternion toLocalCoordinateSystem(Quaternion globalOrientation){
+  public Quaternion toFloorCoordinateSystem(Quaternion globalOrientation){
     Quaternion localOrientation;
     if(this.isCalibrated){
       localOrientation = qMult(globalOrientation, qConjugate(this.orientation));
