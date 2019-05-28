@@ -92,11 +92,11 @@ class Floor{
   
   private void addSkeletonFeet(Skeleton skeleton){
     if(!bufferIsFull){
-      if(skeleton.joints[15].trackingState == 2){ // if FootLeft is tracked 
-        this.addFoot(skeleton.joints[15]);  
+      if(skeleton.joints[FOOT_LEFT].trackingState == 2){ // if FootLeft is tracked 
+        this.addFoot(skeleton.joints[FOOT_LEFT]);  
       }
-      if(skeleton.joints[19].trackingState == 2){ // if FootRight is tracked 
-        this.addFoot(skeleton.joints[19]);  
+      if(skeleton.joints[FOOT_RIGHT].trackingState == 2){ // if FootRight is tracked 
+        this.addFoot(skeleton.joints[FOOT_RIGHT]);  
       }
     }
   }
@@ -106,7 +106,6 @@ class Floor{
       this.historyOfFeetPositions.set(this.indexToBeUpdated, 0, footJoint.estimatedPosition.x);
       this.historyOfFeetPositions.set(this.indexToBeUpdated, 1, footJoint.estimatedPosition.y);
       this.historyOfFeetPositions.set(this.indexToBeUpdated, 2, footJoint.estimatedPosition.z);
-      println("added index: "+ this.indexToBeUpdated);
       this.indexToBeUpdated++;
     } 
     else {
@@ -114,9 +113,7 @@ class Floor{
         this.historyOfFeetPositions.set(this.indexToBeUpdated, 0, footJoint.estimatedPosition.x);
         this.historyOfFeetPositions.set(this.indexToBeUpdated, 1, footJoint.estimatedPosition.y);
         this.historyOfFeetPositions.set(this.indexToBeUpdated, 2, footJoint.estimatedPosition.z);
-        
         this.updateAverageFeetPosition();
-        println("added index: "+ this.indexToBeUpdated);
         this.indexToBeUpdated++;
       }
       else {
@@ -199,7 +196,7 @@ class Floor{
       this.basisVector3 = new PVector((float)basisVectors[0][2], (float)basisVectors[1][2], (float)basisVectors[2][2]);
       Matrix floorCoordinateSystem = basisVectorsToFloorCoordinateSystem(this.basisVector1, this.basisVector2, this.basisVector3);
       this.plane = new Plane(this.basisVector1, this.basisVector2, this.averageFeetPosition);
-      this.orientation = rotationMatrixToQuaternion(floorCoordinateSystem);
+      this.orientation = rotationMatrixToQuaternion2(floorCoordinateSystem);
       this.enableBoxDraw = true;
     }
   }
@@ -266,7 +263,7 @@ class Floor{
       vertex(reScaleX(floorCorner4.x), reScaleY(floorCorner4.y), reScaleZ(floorCorner4.z));
       vertex(reScaleX(floorCorner8.x), reScaleY(floorCorner8.y), reScaleZ(floorCorner8.z));
       endShape();
-      this.drawCoordinateSystem(true, false);
+      this.drawCoordinateSystem(true, true);
     }
   }
   
@@ -323,6 +320,6 @@ class Floor{
 }
 
 void calibrateFloor(){ // This method exists to make possible to calibrate on another thread other than the draw() loop.
-  //scene.floor.timedCalibration();
+  //scene.floor.timedCalibration(); // for debugging purposes only.
   scene.floor.controlledCalibration();
 }

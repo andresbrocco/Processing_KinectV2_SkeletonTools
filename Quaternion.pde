@@ -138,3 +138,82 @@ float angleBetweenQuaternions(Quaternion q1, Quaternion q2){
   float theta = acos(min(dotProduct, 1));
   return theta;
 }
+
+Quaternion axisAngleToQuaternion(float angle, float x, float y, float z){
+  Quaternion quaternion = new Quaternion();
+  quaternion.real = cos(angle/2);
+  quaternion.vector = (new PVector(x, y, z)).mult(sin(angle/2));
+  return quaternion;
+}
+
+Quaternion rotationMatrixToQuaternion2(Matrix m){
+  float angle, x, y, z;
+  float epsilon = 0.01; // margin to allow for rounding errors
+  float epsilon2 = 0.1; // margin to distinguish between 0 and 180 degrees
+  if ((Math.abs(m.get(0, 1)-m.get(1, 0))< epsilon)
+    && (Math.abs(m.get(0, 2)-m.get(2, 0))< epsilon)
+    && (Math.abs(m.get(1, 2)-m.get(2, 1))< epsilon)) {
+    // singularity found
+    // first check for identity matrix which must have +1 for all terms
+    //  in leading diagonaland zero in other terms
+    if ((Math.abs(m.get(0, 1)+m.get(1, 0)) < epsilon2)
+      && (Math.abs(m.get(0, 2)+m.get(2, 0)) < epsilon2)
+      && (Math.abs(m.get(1, 2)+m.get(2, 1)) < epsilon2)
+      && (Math.abs(m.get(0, 0)+m.get(1, 1)+m.get(2, 2)-3) < epsilon2)) {
+      // this singularity is identity matrix so angle = 0
+      return axisAngleToQuaternion(0, 1, 0, 0); // zero angle, arbitrary axis
+    }
+    // otherwise this singularity is angle = 180
+    angle = PI;
+    double xx = (m.get(0, 0)+1)/2;
+    double yy = (m.get(1, 1)+1)/2;
+    double zz = (m.get(2, 2)+1)/2;
+    double xy = (m.get(0, 1)+m.get(1, 0))/4;
+    double xz = (m.get(0, 2)+m.get(2, 0))/4;
+    double yz = (m.get(1, 2)+m.get(2, 1))/4;
+    if ((xx > yy) && (xx > zz)) { // m[0][0] is the largest diagonal term
+      if (xx< epsilon) {
+        x = 0;
+        y = 0.7071;
+        z = 0.7071;
+      } else {
+        x = sqrt((float)xx);
+        y = (float)xy/x;
+        z = (float)xz/x;
+      }
+    } else if (yy > zz) { // m[1][1] is the largest diagonal term
+      if (yy< epsilon) {
+        x = 0.7071;
+        y = 0;
+        z = 0.7071;
+      } else {
+        y = sqrt((float)yy);
+        x = (float)xy/y;
+        z = (float)yz/y;
+      }  
+    } else { // m[2][2] is the largest diagonal term so base result on this
+      if (zz< epsilon) {
+        x = 0.7071;
+        y = 0.7071;
+        z = 0;
+      } else {
+        z = sqrt((float)zz);
+        x = (float)xz/z;
+        y = (float)yz/z;
+      }
+    }
+    return axisAngleToQuaternion(angle, x, y, z); // return 180 deg rotation
+  }
+  // as we have reached here there are no singularities so we can handle normally
+  double s = Math.sqrt((m.get(2, 1) - m.get(1, 2))*(m.get(2, 1) - m.get(1, 2))
+    +(m.get(0, 2) - m.get(2, 0))*(m.get(0, 2) - m.get(2, 0))
+    +(m.get(1, 0) - m.get(0, 1))*(m.get(1, 0) - m.get(0, 1))); // used to normalise
+  if (Math.abs(s) < 0.001) s=1; 
+    // prevent divide by zero, should not happen if matrix is orthogonal and should be
+    // caught by singularity test above, but I've left it in just in case
+  angle = (float) Math.acos((m.get(0, 0) + m.get(1, 1) + m.get(2, 2) - 1)/2);
+  x = (float) ((m.get(2, 1) - m.get(1, 2))/s);
+  y = (float) ((m.get(0, 2) - m.get(2, 0))/s);
+  z = (float) ((m.get(1, 0) - m.get(0, 1))/s);
+  return axisAngleToQuaternion(angle, x, y, z);
+}

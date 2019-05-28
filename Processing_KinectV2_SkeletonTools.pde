@@ -18,7 +18,7 @@ void setup()
 void draw()
 {
   for(Skeleton skeleton:scene.activeSkeletons.values()){ //example of consulting feature
-    println("distanceBetweenHands: "+ skeleton.features.distanceBetweenHands);
+    //println("distanceBetweenHands: "+ skeleton.features.distanceBetweenHands);
   }
   scene.update();
   if(drawSkeletonTool){
