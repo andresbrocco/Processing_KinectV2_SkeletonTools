@@ -200,6 +200,26 @@ class Floor{
     }
   }
   
+  public PVector toLocalCoordinateSystem(PVector globalPosition){
+    PVector localPosition;
+    if(this.isCalibrated){
+      localPosition = PVector.sub(globalPosition, this.averageFeetPosition);
+    } else{
+      localPosition = globalPosition;
+    }
+    return localPosition;
+  }
+  
+  public Quaternion toLocalCoordinateSystem(Quaternion globalOrientation){
+    Quaternion localOrientation;
+    if(this.isCalibrated){
+      localOrientation = qMult(globalOrientation, qConjugate(this.orientation));
+    } else {
+      localOrientation = globalOrientation;
+    }
+    return localOrientation;
+  }
+  
   public void draw(boolean coordinateSystem, boolean box, boolean plane){
     if(this.isCalibrated){
       if(plane){
@@ -262,7 +282,7 @@ class Floor{
       PVector floorCorner8 = PVector.add(this.averageFeetPosition, PVector.mult(this.basisVector1, floorHeight)).add(PVector.mult(this.basisVector2, -floorWidth)).add(PVector.mult(this.basisVector3, -floorThickness));
       
       noFill();
-      
+      stroke(this.scene.roomColor);
       // Lower Face:
       beginShape();
       vertex(reScaleX(floorCorner1.x), reScaleY(floorCorner1.y), reScaleZ(floorCorner1.z));
@@ -346,6 +366,6 @@ class Floor{
 }
 
 void calibrateFloor(){ // This method exists to make possible to calibrate on another thread other than the draw() loop.
-  //scene.floor.timedCalibration(); // for debugging purposes only.
-  scene.floor.controlledCalibration();
+  scene.floor.timedCalibration(); // for debugging purposes only.
+  //scene.floor.controlledCalibration();
 }

@@ -39,7 +39,7 @@ public class Bone{
     this.estimateLength(confidenceParameters[0]/10); // the length of the bones should not be too sensitive to new measurements.
     this.estimatedPosition = PVector.lerp(this.parentJoint.estimatedPosition, this.childJoint.estimatedPosition, 0.5);
     this.estimateDirection(confidenceParameters[0], currentDeltaT, previousDeltaT, dampingFactor);
-    this.relativeOrientation = calculateRelativeOrientation(this.parentJoint.currentEstimatedOrientation, this.childJoint.currentEstimatedOrientation);
+    this.relativeOrientation = calculateRelativeOrientation(this.parentJoint.estimatedOrientation, this.childJoint.estimatedOrientation);
     this.childJoint.calculateEstimates(confidenceParameters, currentDeltaT, previousDeltaT, dampingFactor); // Continue Chained Update, calling next joint
   }
   

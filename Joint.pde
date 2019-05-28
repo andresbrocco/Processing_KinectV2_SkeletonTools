@@ -14,8 +14,8 @@ public class Joint{
   private PVector estimatedAcceleration;
   private Quaternion measuredOrientation;
   private float averageAngleBetweenMeasuredOrientationAndEstimatedOrientation; // theta
-  private float angleBetweenMeasuredOrientationAndEstimatedOrientationStandardDeviation; // std of theta: angle between measuredOrientation and currentEstimatedOrientation. 
-  private Quaternion currentEstimatedOrientation;
+  private float angleBetweenMeasuredOrientationAndEstimatedOrientationStandardDeviation; // std of theta: angle between measuredOrientation and estimatedOrientation. 
+  private Quaternion estimatedOrientation;
   private Quaternion previousEstimatedOrientation;
   private PVector estimatedDirectionX;
   private PVector estimatedDirectionY;
@@ -35,8 +35,8 @@ public class Joint{
     this.averageDistanceBetweenMeasuredPositionAndEstimatedPosition = 0.05; // measurement error in meters
     this.distanceBetweenMeasuredPositionAndEstimatedPositionStandardDeviation = 0.025; // in meters. Pure guess!
     this.estimatedVelocity = new PVector(0,0,0);
-    this.currentEstimatedOrientation = this.measuredOrientation;
-    this.previousEstimatedOrientation = this.currentEstimatedOrientation;
+    this.estimatedOrientation = this.measuredOrientation;
+    this.previousEstimatedOrientation = this.estimatedOrientation;
     this.averageAngleBetweenMeasuredOrientationAndEstimatedOrientation = 1; // in radians. Pure guess! 
     this.angleBetweenMeasuredOrientationAndEstimatedOrientationStandardDeviation = 1; // em radianos. Pure guess!
   }
@@ -60,7 +60,7 @@ public class Joint{
       this.measuredOrientation = new Quaternion(kjoint.getOrientation());
     } else { // replace impossible measurements with prediction.
       this.measuredPosition = PVector.add(this.estimatedPosition, PVector.mult(this.estimatedVelocity, this.skeleton.scene.currentDeltaT));
-      this.measuredOrientation = qSlerp(this.previousEstimatedOrientation, this.currentEstimatedOrientation, 1 + this.skeleton.scene.currentDeltaT/this.skeleton.scene.previousDeltaT);
+      this.measuredOrientation = qSlerp(this.previousEstimatedOrientation, this.estimatedOrientation, 1 + this.skeleton.scene.currentDeltaT/this.skeleton.scene.previousDeltaT);
       println("impossible measurement of joint "+ this.jointId+" received and discarded (too close to kinect): "+kjoint.getPosition());
     }
   }
@@ -91,14 +91,14 @@ public class Joint{
   }
 
   private void updateOrientation(float[] confidenceParameters, float currentDeltaT, float previousDeltaT, float dampingFactor){
-    float measuredAngleBetweenMeasuredOrientationAndEstimatedOrientation = angleBetweenQuaternions(this.measuredOrientation, this.currentEstimatedOrientation);
+    float measuredAngleBetweenMeasuredOrientationAndEstimatedOrientation = angleBetweenQuaternions(this.measuredOrientation, this.estimatedOrientation);
     this.averageAngleBetweenMeasuredOrientationAndEstimatedOrientation = lerp(this.averageAngleBetweenMeasuredOrientationAndEstimatedOrientation, measuredAngleBetweenMeasuredOrientationAndEstimatedOrientation, confidenceParameters[0]);
     this.angleBetweenMeasuredOrientationAndEstimatedOrientationStandardDeviation = lerp(this.angleBetweenMeasuredOrientationAndEstimatedOrientationStandardDeviation, abs(measuredAngleBetweenMeasuredOrientationAndEstimatedOrientation-this.averageAngleBetweenMeasuredOrientationAndEstimatedOrientation), confidenceParameters[0]);
     float orientationStep = howCloseToTheMean(measuredAngleBetweenMeasuredOrientationAndEstimatedOrientation, this.averageAngleBetweenMeasuredOrientationAndEstimatedOrientation, this.angleBetweenMeasuredOrientationAndEstimatedOrientationStandardDeviation); 
-    Quaternion predictedCurrentOrientation = qSlerp(this.previousEstimatedOrientation, this.currentEstimatedOrientation, 1 + dampingFactor*currentDeltaT/previousDeltaT);
+    Quaternion predictedCurrentOrientation = qSlerp(this.previousEstimatedOrientation, this.estimatedOrientation, 1 + dampingFactor*currentDeltaT/previousDeltaT);
     Quaternion newEstimatedOrientation = qSlerp(predictedCurrentOrientation, this.measuredOrientation, orientationStep*confidenceParameters[0]);
-    this.previousEstimatedOrientation = this.currentEstimatedOrientation;
-    this.currentEstimatedOrientation = newEstimatedOrientation;
+    this.previousEstimatedOrientation = this.estimatedOrientation;
+    this.estimatedOrientation = newEstimatedOrientation;
   }
   
   private void updatePosition(float[] confidenceParameters, float currentDeltaT, float dampingFactor){
@@ -161,9 +161,9 @@ public class Joint{
   }
   
   private void calculateCoordinateSystemOrientation(){
-    this.estimatedDirectionX = qMult(qMult(this.currentEstimatedOrientation, new Quaternion(0, 1, 0, 0)), qConjugate(this.currentEstimatedOrientation)).vector; 
-    this.estimatedDirectionY = qMult(qMult(this.currentEstimatedOrientation, new Quaternion(0, 0, 1, 0)), qConjugate(this.currentEstimatedOrientation)).vector; 
-    this.estimatedDirectionZ = qMult(qMult(this.currentEstimatedOrientation, new Quaternion(0, 0, 0, 1)), qConjugate(this.currentEstimatedOrientation)).vector; 
+    this.estimatedDirectionX = qMult(qMult(this.estimatedOrientation, new Quaternion(0, 1, 0, 0)), qConjugate(this.estimatedOrientation)).vector; 
+    this.estimatedDirectionY = qMult(qMult(this.estimatedOrientation, new Quaternion(0, 0, 1, 0)), qConjugate(this.estimatedOrientation)).vector; 
+    this.estimatedDirectionZ = qMult(qMult(this.estimatedOrientation, new Quaternion(0, 0, 0, 1)), qConjugate(this.estimatedOrientation)).vector; 
     this.measuredDirectionX = qMult(qMult(this.measuredOrientation, new Quaternion(0, 1, 0, 0)), qConjugate(this.measuredOrientation)).vector; 
     this.measuredDirectionY = qMult(qMult(this.measuredOrientation, new Quaternion(0, 0, 1, 0)), qConjugate(this.measuredOrientation)).vector; 
     this.measuredDirectionZ = qMult(qMult(this.measuredOrientation, new Quaternion(0, 0, 0, 1)), qConjugate(this.measuredOrientation)).vector; 

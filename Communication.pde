@@ -36,10 +36,10 @@ public class Communication{
       messageToPd.add(skeleton.joints[jointType].estimatedPosition.x);
       messageToPd.add(skeleton.joints[jointType].estimatedPosition.y);
       messageToPd.add(skeleton.joints[jointType].estimatedPosition.z);
-      messageToPd.add(skeleton.joints[jointType].currentEstimatedOrientation.real);
-      messageToPd.add(skeleton.joints[jointType].currentEstimatedOrientation.vector.x);
-      messageToPd.add(skeleton.joints[jointType].currentEstimatedOrientation.vector.y);
-      messageToPd.add(skeleton.joints[jointType].currentEstimatedOrientation.vector.z);
+      messageToPd.add(skeleton.joints[jointType].estimatedOrientation.real);
+      messageToPd.add(skeleton.joints[jointType].estimatedOrientation.vector.x);
+      messageToPd.add(skeleton.joints[jointType].estimatedOrientation.vector.y);
+      messageToPd.add(skeleton.joints[jointType].estimatedOrientation.vector.z);
       this.oscP5.send(messageToPd, pdAddress);
     }
   }
