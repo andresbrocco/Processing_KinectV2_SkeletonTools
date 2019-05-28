@@ -85,7 +85,15 @@ public class Bone{
     
   }
   
-  public void drawRelativeOrientation(float size){ // X:Red, Y:Green, Z:Blue
+  public void draw(color colorEstimated, color colorMeasured, boolean measuredSkeleton, boolean boneRelativeOrientation){
+    this.drawBone(colorEstimated, colorMeasured, measuredSkeleton);
+    if(boneRelativeOrientation){
+      this.drawRelativeOrientation();
+    }
+  }
+  
+  public void drawRelativeOrientation(){ // X:Red, Y:Green, Z:Blue
+  float size = 15;
     if(!this.childJoint.isEndJoint){
       pushMatrix();
       translate(reScaleX(this.estimatedPosition.x),

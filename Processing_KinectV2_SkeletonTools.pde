@@ -22,7 +22,7 @@ void draw()
   }
   scene.update();
   if(drawSkeletonTool){
-    scene.drawOnScreen(false, false, true); // drawMeasuredSkeletons, drawJointOrientation, drawBoneRelativeOrientation  
+    scene.draw(true, true, true, true, false); // measuredSkeletons, jointOrientation, boneRelativeOrientation, handRadius, handStates
   } else{
     // Your animation algorithm should be placed here
     background(color(128));
@@ -35,8 +35,12 @@ void keyPressed(){
   if(key == 'f'){
     if(scene.floor.isCalibrating){
       scene.floor.isCalibrating = false;
-      scene.floor.isCalibrated = true;
-      println("Floor calibration complete!");
+      if(scene.floor.indexToBeUpdated > 3){
+        scene.floor.isCalibrated = true;
+        println("Floor calibration complete!");
+      } else{
+        println("Aborted floor calibration");
+      }
     }else{
       thread("calibrateFloor");
     }

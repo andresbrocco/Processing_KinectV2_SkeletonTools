@@ -56,24 +56,16 @@ public class Scene{
     }
   }
   
-  public void drawOnScreen(boolean drawMeasuredSkeletons, boolean drawJointOrientation, boolean drawBoneRelativeOrientation){  
+  public void draw(boolean measuredSkeletons, boolean jointOrientation, boolean boneRelativeOrientation, boolean handRadius, boolean handStates){  
     background(this.backgroundColor);
     this.setCamera();
     if(!this.activeSkeletons.isEmpty()){
       for (Skeleton skeleton:this.activeSkeletons.values()) {
-        this.drawSkeleton(skeleton, drawMeasuredSkeletons, drawJointOrientation, drawBoneRelativeOrientation);
-        skeleton.drawHandRadius();
-        //skeleton.drawHandStates();
+        skeleton.draw(measuredSkeletons, jointOrientation, boneRelativeOrientation, handRadius, handStates);
       }
     }
     this.drawKinectFieldOfView();
-    if(this.floor.isCalibrated){
-      //this.floor.drawPlane();
-      this.floor.drawBox();
-    } else if(this.floor.isCalibrating && this.floor.enableBoxDraw){
-      this.floor.drawBox();
-      this.floor.drawData();
-    }
+    this.floor.draw(true, true, false); // coordinateSystem, box, plane
   }
   
   private void setCamera(){
@@ -147,24 +139,5 @@ public class Scene{
     vertex(maximumDepthInPixels*tan(radians(horizontalFoV/2)), -maximumDepthInPixels*tan(radians(verticalFoV/2)), maximumDepthInPixels);
     endShape();
     popMatrix();
-  }
-  
-  void drawSkeleton(Skeleton skeleton, boolean drawMeasuredSkeleton, boolean drawJointOrientation, boolean drawBoneRelativeOrientation){
-    color colorEstimated = color(skeleton.skeletonColorRGB[0], skeleton.skeletonColorRGB[1], skeleton.skeletonColorRGB[2], 170);
-    color colorMeasured = color(skeleton.skeletonColorRGB[0], skeleton.skeletonColorRGB[1], skeleton.skeletonColorRGB[2], 85);
-    for(Bone bone:skeleton.bones){
-      bone.drawBone(colorEstimated, colorMeasured, drawMeasuredSkeleton);
-      if(drawBoneRelativeOrientation){
-        bone.drawRelativeOrientation(10);
-      }
-    }
-    for(Joint joint:skeleton.joints){
-      joint.drawPosition(colorEstimated);
-      if(drawJointOrientation && !joint.isEndJoint){
-        joint.drawOrientation(true, true, 15); // drawEstimated, drawMeasured
-      }
-    }
-    //skeleton.drawHandStates();
-    //skeleton.drawHandRadius();
   }
 }

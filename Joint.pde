@@ -173,7 +173,15 @@ public class Joint{
     return this.skeleton.scene.floor.plane.distanceTo(this.estimatedPosition);
   }
   
-  public void drawOrientation(boolean drawEstimated, boolean drawMeasured, float size){ // X:Red, Y:Green, Z:Blue
+  public void draw(color colorEstimated, boolean measuredSkeleton, boolean jointOrientation){
+    this.drawPosition(colorEstimated);
+    if(jointOrientation && !this.isEndJoint){
+      this.drawOrientation(true, measuredSkeleton); // estimated, measured
+    }
+  }
+  
+  public void drawOrientation(boolean drawEstimated, boolean drawMeasured){ // X:Red, Y:Green, Z:Blue
+    float size = 15;
     pushMatrix();
     translate(reScaleX(this.estimatedPosition.x), reScaleY(this.estimatedPosition.y), reScaleZ(this.estimatedPosition.z));
     if(drawEstimated){

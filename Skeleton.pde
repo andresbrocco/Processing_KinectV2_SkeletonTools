@@ -2,13 +2,13 @@ public class Skeleton{
   private Scene scene;
   private int indexColor; // Which body is it (color = - M*255*256^2 - C*255*256 - Y*255 -1)
   private int[] skeletonColorRGB = new int[3]; // in RGB
-  private int appearedLastInFrame = 0;
+  private int appearedLastInFrame = 0; // counter to keep track if skeleton is dead or not.
   private float alpha = 0.33; // alpha = confidence of new measurement
   private float beta = 0.33; // beta = confidence of estimated position based on previous position and velocity
   private float gamma = 1 - this.alpha - this.beta; // gamma = confidence of estimated position based on parentBone orientation and length
   private float[] confidenceParameters = {alpha, beta, gamma};
   private float dampingFactor = 0.707; // 1 is not damped. 0 is fully damped.
-  private boolean isTracked = false;
+  private boolean isTracked = false; // dumb information, because is always true.
   private int[] measuredHandStates = {0, 0}; // Left, Right
   private float[] measuredHandRadius = {0, 0}; // goes from 0 to 1, indicating how opened the hand is.
   private float[] estimatedHandRadius = {0.5, 0.5}; // goes from 0 to 1, indicating how opened the hand is.
@@ -66,8 +66,8 @@ public class Skeleton{
     this.features = new Features(this);
   }
   
-  public void update(KSkeleton kSkeleton, float currentDeltaT, float previousDeltaT){ //<>// //<>// //<>//
-    this.isTracked = kSkeleton.isTracked(); // dumb information, because is always true.
+  public void update(KSkeleton kSkeleton, float currentDeltaT, float previousDeltaT){  //<>//
+    this.isTracked = kSkeleton.isTracked(); 
     this.measuredHandStates[0] = kSkeleton.getLeftHandState();
     this.measuredHandStates[1] = kSkeleton.getRightHandState();
     this.measureHandRadius();
@@ -123,6 +123,24 @@ public class Skeleton{
       }
     }
   }
+  
+  public void draw(boolean measuredSkeleton, boolean jointOrientation, boolean boneRelativeOrientation,  boolean handRadius, boolean handStates){
+    color colorEstimated = color(this.skeletonColorRGB[0], this.skeletonColorRGB[1], this.skeletonColorRGB[2], 170);
+    color colorMeasured = color(this.skeletonColorRGB[0], this.skeletonColorRGB[1], this.skeletonColorRGB[2], 85);
+    for(Bone bone:this.bones){
+      bone.draw(colorEstimated, colorMeasured, measuredSkeleton, boneRelativeOrientation);
+    }
+    for(Joint joint:this.joints){
+      joint.draw(colorEstimated, measuredSkeleton, jointOrientation);
+    }
+    if(handRadius){
+      this.drawHandRadius();
+    }
+    if(handStates){
+      this.drawHandStates();
+    }
+  }
+  
   public void drawHandRadius(){
     int maxSphereRadius = 25;
     stroke(color(0, 0, 0, 85));
@@ -174,12 +192,10 @@ public class Skeleton{
       pushMatrix();
       
       if(h==0){ // left hand
-        println("leftHandState: "+ this.measuredHandStates[h]);
         translate(reScaleX(this.joints[HAND_LEFT].estimatedPosition.x),
                   reScaleY(this.joints[HAND_LEFT].estimatedPosition.y),
                   reScaleZ(this.joints[HAND_LEFT].estimatedPosition.z));
       } else{ // right hand
-        //println("rightHandState: "+ this.measuredHandStates[h]);
         translate(reScaleX(this.joints[HAND_RIGHT].estimatedPosition.x),
                   reScaleY(this.joints[HAND_RIGHT].estimatedPosition.y),
                   reScaleZ(this.joints[HAND_RIGHT].estimatedPosition.z));

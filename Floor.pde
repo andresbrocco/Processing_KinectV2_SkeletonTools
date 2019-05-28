@@ -11,14 +11,13 @@ class Floor{
   private PVector basisVector2 = new PVector();
   private PVector basisVector3 = new PVector();
   private Quaternion orientation;
-  private float[][] rotationMatrix = new float[3][3];
   private int indexToBeUpdated = 0;
   private boolean bufferIsFull = false;
   private float boxDimension = 2; // "meters"
   private boolean isWaitingForUser = false;
   private boolean isCalibrating = false;
   private boolean isCalibrated = false;
-  private boolean enableBoxDraw = false;
+  private boolean enableDraw = false;
   private Plane plane;
   
   public Floor(Scene scene){
@@ -197,7 +196,35 @@ class Floor{
       Matrix floorCoordinateSystem = basisVectorsToFloorCoordinateSystem(this.basisVector1, this.basisVector2, this.basisVector3);
       this.plane = new Plane(this.basisVector1, this.basisVector2, this.averageFeetPosition);
       this.orientation = rotationMatrixToQuaternion2(floorCoordinateSystem);
-      this.enableBoxDraw = true;
+      this.enableDraw = true;
+    }
+  }
+  
+  public void draw(boolean coordinateSystem, boolean box, boolean plane){
+    if(this.isCalibrated){
+      if(plane){
+        this.drawPlane();
+      }
+      if(box){
+        this.drawBox();
+      }
+      if(coordinateSystem){
+        this.drawCoordinateSystem(true, false); // fromQuaternion, fromSVDBasis
+      }
+    }
+    else if(this.isCalibrating){
+      this.drawData();
+      if(this.enableDraw){
+        if(plane){
+          this.drawPlane();
+        }
+        if(box){
+          this.drawBox();
+        }
+        if(coordinateSystem){
+          this.drawCoordinateSystem(true, false); // fromQuaternion, fromSVDBasis
+        }
+      }
     }
   }
   
@@ -263,7 +290,6 @@ class Floor{
       vertex(reScaleX(floorCorner4.x), reScaleY(floorCorner4.y), reScaleZ(floorCorner4.z));
       vertex(reScaleX(floorCorner8.x), reScaleY(floorCorner8.y), reScaleZ(floorCorner8.z));
       endShape();
-      this.drawCoordinateSystem(true, true);
     }
   }
   
