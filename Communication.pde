@@ -16,6 +16,8 @@ public class Communication{
     if(!scene.activeSkeletons.isEmpty()){
       for(Skeleton skeleton:scene.activeSkeletons.values()){
         this.sendKinectSkeleton(skeleton);
+        this.sendGrainParameters(skeleton);
+        this.sendVideoParameter(skeleton);
       }
     }
   }
@@ -42,5 +44,32 @@ public class Communication{
       messageToPd.add(skeleton.joints[jointType].estimatedOrientation.vector.z);
       this.oscP5.send(messageToPd, pdAddress);
     }
+  }
+  
+  private void sendGrainParameters(Skeleton skeleton){
+    OscMessage messageToPd = new OscMessage("/Ready");
+    messageToPd = new OscMessage("/mid_z");
+    messageToPd.add(map((skeleton.joints[SPINE_BASE].estimatedPosition.z),0.4,3.5,0,1));
+    this.oscP5.send(messageToPd, pdAddress);
+    messageToPd = new OscMessage("/hand_left_x");
+    messageToPd.add(map((skeleton.joints[HAND_LEFT].estimatedPosition.x),-1.5,1,0,1));
+    this.oscP5.send(messageToPd, pdAddress);
+    messageToPd = new OscMessage("/hand_left_y");
+    messageToPd.add(map((skeleton.joints[HAND_LEFT].estimatedPosition.y),-1.5,1,0,1));
+    this.oscP5.send(messageToPd, pdAddress);
+    messageToPd = new OscMessage("/hand_right_x");
+    messageToPd.add(map((skeleton.joints[HAND_RIGHT].estimatedPosition.x),-1.5,1,0,1));
+    this.oscP5.send(messageToPd, pdAddress);
+    messageToPd = new OscMessage("/hand_right_y");
+    messageToPd.add(map((skeleton.joints[HAND_RIGHT].estimatedPosition.y),-1.5,1,0,1));
+    this.oscP5.send(messageToPd, pdAddress);
+  }
+  
+  private void sendVideoParameter(Skeleton skeleton){
+    OscMessage messageToPd = new OscMessage("/Ready");  
+    this.oscP5.send(messageToPd, pdAddress);
+    messageToPd = new OscMessage("/Elastic");
+    messageToPd.add((skeleton.features.distanceBetweenHands));
+    this.oscP5.send(messageToPd,pdAddress);
   }
 }

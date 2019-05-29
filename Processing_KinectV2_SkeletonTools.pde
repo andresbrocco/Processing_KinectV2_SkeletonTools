@@ -32,8 +32,8 @@ void draw()
 }
 
 void keyPressed(){
-  // Press f to enter floor calibration process
-  if(key == 'f'){
+  // Press t to enter floor calibration process (timed)
+  if(key == 't'){
     if(scene.floor.isCalibrating){
       scene.floor.isCalibrating = false;
       if(scene.floor.indexToBeUpdated > 3){
@@ -43,7 +43,21 @@ void keyPressed(){
         println("Aborted floor calibration");
       }
     }else{
-      thread("calibrateFloor");
+      thread("startTimedCalibration");
+    }
+  }
+  // Press c to enter floor calibration process (controlled)
+  if(key == 'c'){
+    if(scene.floor.isCalibrating){
+      scene.floor.isCalibrating = false;
+      if(scene.floor.indexToBeUpdated > 3){
+        scene.floor.isCalibrated = true;
+        println("Floor calibration complete!");
+      } else{
+        println("Aborted floor calibration");
+      }
+    }else{
+      thread("startControlledCalibration");
     }
   }
   // Press d to draw Skeleton Tool
