@@ -21,7 +21,6 @@ class Features{
     this.elbowAngle[1] = PVector.angleBetween(PVector.sub(skeleton.joints[8].estimatedPosition, skeleton.joints[9].estimatedPosition), PVector.sub(skeleton.joints[10].estimatedPosition, skeleton.joints[9].estimatedPosition));
     this.distanceBetweenHands = PVector.sub(skeleton.joints[7].estimatedPosition, skeleton.joints[11].estimatedPosition).mag();
     
-    
     // To get orientations and positions relative to the floor coordinate system, use the floor method:
     this.leftHandPositionLocal = this.skeleton.scene.floor.toFloorCoordinateSystem(this.skeleton.joints[HAND_LEFT].estimatedPosition); // not tested yet;
     this.leftHandOrientationLocal = this.skeleton.scene.floor.toFloorCoordinateSystem(this.skeleton.joints[HAND_LEFT].estimatedOrientation); // not tested yet;

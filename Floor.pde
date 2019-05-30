@@ -5,11 +5,12 @@ class Floor{
   private int maximumFeetPositions = 500;
   private Matrix historyOfFeetPositions = new Matrix(maximumFeetPositions, 3);
   private PVector averageFeetPosition = new PVector();
+  private PVector centerPosition = new PVector();
   private SingularValueDecomposition svd;
   private PVector singularValues = new PVector();
-  private PVector basisVector1 = new PVector();
-  private PVector basisVector2 = new PVector();
-  private PVector basisVector3 = new PVector();
+  private PVector basisVectorX;
+  private PVector basisVectorY;
+  private PVector basisVectorZ;
   private Quaternion orientation;
   private int indexToBeUpdated = 0;
   private boolean bufferIsFull = false;
@@ -19,6 +20,16 @@ class Floor{
   private boolean isCalibrated = false;
   private boolean enableDraw = false;
   private Plane plane;
+  private PVector planeCornerNN; // V-0-
+  private PVector planeCornerNP; // V-0+
+  private PVector planeCornerPP; // V+0+
+  private PVector planeCornerPN; // V+0-
+  private PVector boxFacePointXN; // X-
+  private PVector boxFacePointXP; // X+
+  private PVector boxFacePointYN; // Y-
+  private PVector boxFacePointYP; // Y+
+  private PVector boxFacePointZN; // Z-
+  private PVector boxFacePointZP; // Z+
   
   public Floor(Scene scene){
     this.scene = scene;
@@ -31,12 +42,9 @@ class Floor{
     println("The opened legs partially overcomes the issue with reflecting floors.");
     println("Get in position and clap to get a snapshot.");
     this.isCalibrating = true;
-    int snapshotCount = 0;
     while(this.isCalibrating){
       for(Skeleton skeleton:this.scene.activeSkeletons.values()){
         if(skeleton.features.distanceBetweenHands < 0.1){
-          snapshotCount++;
-          println("Snapshot count: " + snapshotCount);
           this.addSkeletonFeet(skeleton);
           this.calculateFloor();
         }
@@ -70,7 +78,7 @@ class Floor{
     while(this.isCalibrating){
       for(int countdown = 2; countdown>0; countdown--){
         println("Snapshot in "+ countdown + " seconds");
-        delay(1000);      
+        delay(1000);
         if(!this.isCalibrating){
           this.isCalibrated = true;
           break snapshotLoop;
@@ -91,10 +99,11 @@ class Floor{
   
   private void addSkeletonFeet(Skeleton skeleton){
     if(!bufferIsFull){
-      if(skeleton.joints[FOOT_LEFT].trackingState == 2){ // if FootLeft is tracked 
+      float maxAccelerationAccepted = 0.5; // test this parameter
+      if(skeleton.joints[FOOT_LEFT].trackingState == 2 && skeleton.joints[FOOT_LEFT].estimatedAcceleration.mag() < maxAccelerationAccepted){ // if FootLeft is tracked and steady
         this.addFoot(skeleton.joints[FOOT_LEFT]);  
       }
-      if(skeleton.joints[FOOT_RIGHT].trackingState == 2){ // if FootRight is tracked 
+      if(skeleton.joints[FOOT_RIGHT].trackingState == 2 && skeleton.joints[FOOT_RIGHT].estimatedAcceleration.mag() < maxAccelerationAccepted){ // if FootRight is tracked and steady
         this.addFoot(skeleton.joints[FOOT_RIGHT]);  
       }
     }
@@ -139,71 +148,112 @@ class Floor{
     }
     this.averageFeetPosition = new PVector((float)averageFeetPosition[0], (float)averageFeetPosition[1], (float)averageFeetPosition[2]);
   }
-  
-  private Matrix basisVectorsToFloorCoordinateSystem(PVector basisVector1, PVector basisVector2, PVector basisVector3){
-    PVector basisVectorX;
-    PVector basisVectorY;
-    if(abs(basisVector1.x) >= abs(basisVector2.x) && abs(basisVector1.x) >= abs(basisVector3.x)){
-      println("casex: 1");
-      basisVectorX = PVector.mult(basisVector1, Math.signum(basisVector1.x)); 
-    } else if(abs(basisVector2.x) >= abs(basisVector3.x)){
-      println("casex: 2");
-      basisVectorX = PVector.mult(basisVector2, Math.signum(basisVector2.x));
-    } else{
-      println("casex: 3");
-      basisVectorX = PVector.mult(basisVector3, Math.signum(basisVector3.x));
-    }
-    if(abs(basisVector1.y) >= abs(basisVector2.y) && abs(basisVector1.y) >= abs(basisVector3.y)){
-      basisVectorY = PVector.mult(basisVector1, Math.signum(basisVector1.y));
-      println("casey: 1");
-    } else if(abs(basisVector2.y) >= abs(basisVector3.y)){
-      println("casey: 2");
-      basisVectorY = PVector.mult(basisVector2, Math.signum(basisVector2.y));
-    } else{
-      println("casey: 3");
-      basisVectorY = PVector.mult(basisVector3, Math.signum(basisVector3.y)); 
-    }
-    PVector basisVectorZ = basisVectorX.cross(basisVectorY);
-    
-    println("basisVectors checker: "+basisVectorX.cross(basisVectorY).dot(basisVectorZ));
-    Matrix coordinateSystem = new Matrix(3, 3);
-    coordinateSystem.set(0, 0, (double)basisVectorX.x);
-    coordinateSystem.set(1, 0, (double)basisVectorX.y);
-    coordinateSystem.set(2, 0, (double)basisVectorX.z);
-    coordinateSystem.set(0, 1, (double)basisVectorY.x);
-    coordinateSystem.set(1, 1, (double)basisVectorY.y);
-    coordinateSystem.set(2, 1, (double)basisVectorY.z);
-    coordinateSystem.set(0, 2, (double)basisVectorZ.x);
-    coordinateSystem.set(1, 2, (double)basisVectorZ.y);
-    coordinateSystem.set(2, 2, (double)basisVectorZ.z);
-    return coordinateSystem;
-  }
 
   private void calculateFloor(){
     if(this.indexToBeUpdated > 3){
       Matrix filledHistoryOfFeetPositions = this.historyOfFeetPositions.getMatrix(0, this.indexToBeUpdated-1, 0, 2);
       this.svd = filledHistoryOfFeetPositions.svd();
       double[] singularValues = this.svd.getSingularValues();
-      this.singularValues = new PVector((float)singularValues[0], (float)singularValues[1], (float)singularValues[2]);
-      println("singularValues: "+this.singularValues);
-      this.singularValues.normalize();
-      
       double[][] basisVectors = this.svd.getV().getArray();
-      println("this.svd.getV().det(): "+this.svd.getV().det()); // the resulting vectors are unitary!
-      this.basisVector1 = new PVector((float)basisVectors[0][0], (float)basisVectors[1][0], (float)basisVectors[2][0]);
-      this.basisVector2 = new PVector((float)basisVectors[0][1], (float)basisVectors[1][1], (float)basisVectors[2][1]);
-      this.basisVector3 = new PVector((float)basisVectors[0][2], (float)basisVectors[1][2], (float)basisVectors[2][2]);
-      Matrix floorCoordinateSystem = basisVectorsToFloorCoordinateSystem(this.basisVector1, this.basisVector2, this.basisVector3);
-      this.plane = new Plane(this.basisVector1, this.basisVector2, this.averageFeetPosition);
-      this.orientation = rotationMatrixToQuaternion2(floorCoordinateSystem);
+      Matrix floorCoordinateSystemRotationMatrix = arrangeBasisVectorDirections(basisVectors, singularValues);
+      findBoxFacePoints(filledHistoryOfFeetPositions);
+      findCenterPosition();
+      this.orientation = rotationMatrixToQuaternion2(floorCoordinateSystemRotationMatrix);
+      this.plane = new Plane(this.basisVectorX, this.basisVectorZ, this.centerPosition);
       this.enableDraw = true;
     }
+  }
+  
+  private void findCenterPosition(){
+    this.planeCornerNN = PVector.mult(this.basisVectorX, PVector.dot(this.boxFacePointXN, this.basisVectorX)).add(PVector.mult(this.basisVectorY, PVector.dot(this.averageFeetPosition, this.basisVectorY))).add(PVector.mult(this.basisVectorZ, PVector.dot(this.boxFacePointZN, this.basisVectorZ))); // V-0-
+    this.planeCornerNP = PVector.mult(this.basisVectorX, PVector.dot(this.boxFacePointXN, this.basisVectorX)).add(PVector.mult(this.basisVectorY, PVector.dot(this.averageFeetPosition, this.basisVectorY))).add(PVector.mult(this.basisVectorZ, PVector.dot(this.boxFacePointZP, this.basisVectorZ))); // V-0+
+    this.planeCornerPP = PVector.mult(this.basisVectorX, PVector.dot(this.boxFacePointXP, this.basisVectorX)).add(PVector.mult(this.basisVectorY, PVector.dot(this.averageFeetPosition, this.basisVectorY))).add(PVector.mult(this.basisVectorZ, PVector.dot(this.boxFacePointZP, this.basisVectorZ))); // V+0+
+    this.planeCornerPN = PVector.mult(this.basisVectorX, PVector.dot(this.boxFacePointXP, this.basisVectorX)).add(PVector.mult(this.basisVectorY, PVector.dot(this.averageFeetPosition, this.basisVectorY))).add(PVector.mult(this.basisVectorZ, PVector.dot(this.boxFacePointZN, this.basisVectorZ))); // V+0-
+    this.centerPosition = PVector.add(this.planeCornerNN, this.planeCornerNP).add(this.planeCornerPP).add(this.planeCornerPN).div(4);
+  }
+  
+  private void findBoxFacePoints(Matrix filledHistoryOfFeetPositions){
+    PVector positiveFarIndex = new PVector(-10,-10,-10); //gambiarra
+    PVector negativeFarIndex = new PVector(10,10,10); //gambiarra
+    for(int row=0; row<filledHistoryOfFeetPositions.getRowDimension(); row++){
+      PVector point = new PVector((float)filledHistoryOfFeetPositions.get(row, 0), (float)filledHistoryOfFeetPositions.get(row, 1), (float)filledHistoryOfFeetPositions.get(row, 2));
+      float basisXProjection = PVector.dot(point, this.basisVectorX);
+      float basisYProjection = PVector.dot(point, this.basisVectorY);
+      float basisZProjection = PVector.dot(point, this.basisVectorZ);
+      if(basisXProjection > positiveFarIndex.x) {
+        positiveFarIndex.x = basisXProjection; this.boxFacePointXP = point;
+      }
+      if(basisYProjection > positiveFarIndex.y) {
+        positiveFarIndex.y = basisYProjection; this.boxFacePointYP = point;
+      }
+      if(basisZProjection > positiveFarIndex.z) {
+        positiveFarIndex.z = basisZProjection; this.boxFacePointZP = point;
+      }
+      if(basisXProjection < negativeFarIndex.x) {
+        negativeFarIndex.x = basisXProjection; this.boxFacePointXN = point;
+      }
+      if(basisYProjection < negativeFarIndex.y) {
+        negativeFarIndex.y = basisYProjection; this.boxFacePointYN = point;
+      }
+      if(basisZProjection < negativeFarIndex.z) {
+        negativeFarIndex.z = basisZProjection; this.boxFacePointZN = point;
+      }
+    }
+  }
+  
+  private Matrix arrangeBasisVectorDirections(double[][] basisVectors, double[] singularValues){ // Set the right direction for each basis vector, so that its CSys points in a direction close to the kinect CSys.
+    PVector basisVector1 = new PVector((float)basisVectors[0][0], (float)basisVectors[1][0], (float)basisVectors[2][0]);
+    PVector basisVector2 = new PVector((float)basisVectors[0][1], (float)basisVectors[1][1], (float)basisVectors[2][1]);
+    PVector basisVector3 = new PVector((float)basisVectors[0][2], (float)basisVectors[1][2], (float)basisVectors[2][2]);
+    boolean[] usedSingularValues = new boolean[3];
+    if(abs(basisVector1.x) >= abs(basisVector2.x) && abs(basisVector1.x) >= abs(basisVector3.x)){
+      this.basisVectorX = PVector.mult(basisVector1, Math.signum(basisVector1.x)); 
+      this.singularValues.x = (float)singularValues[0];
+      usedSingularValues[0] = true;
+    } else if(abs(basisVector2.x) >= abs(basisVector3.x)){
+      this.basisVectorX = PVector.mult(basisVector2, Math.signum(basisVector2.x));
+      this.singularValues.x = (float)singularValues[1];
+      usedSingularValues[1] = true;
+    } else{
+      this.basisVectorX = PVector.mult(basisVector3, Math.signum(basisVector3.x));
+      this.singularValues.x = (float)singularValues[2];
+      usedSingularValues[2] = true;
+    }
+    if(abs(basisVector1.y) >= abs(basisVector2.y) && abs(basisVector1.y) >= abs(basisVector3.y)){
+      this.basisVectorY = PVector.mult(basisVector1, Math.signum(basisVector1.y));
+      this.singularValues.y = (float)singularValues[0];
+      usedSingularValues[0] = true;
+    } else if(abs(basisVector2.y) >= abs(basisVector3.y)){
+      this.basisVectorY = PVector.mult(basisVector2, Math.signum(basisVector2.y));
+      this.singularValues.y = (float)singularValues[1];
+      usedSingularValues[1] = true;
+    } else{
+      this.basisVectorY = PVector.mult(basisVector3, Math.signum(basisVector3.y)); 
+      this.singularValues.y = (float)singularValues[2];
+      usedSingularValues[2] = true;
+    }
+    this.basisVectorZ = this.basisVectorX.cross(this.basisVectorY);
+         if(usedSingularValues[0]==false) this.singularValues.z = (float)singularValues[0];
+    else if(usedSingularValues[1]==false) this.singularValues.z = (float)singularValues[1];
+    else if(usedSingularValues[2]==false) this.singularValues.z = (float)singularValues[2];
+    this.singularValues.normalize();
+    Matrix coordinateSystem = new Matrix(3, 3);
+    coordinateSystem.set(0, 0, (double)this.basisVectorX.x);
+    coordinateSystem.set(1, 0, (double)this.basisVectorX.y);
+    coordinateSystem.set(2, 0, (double)this.basisVectorX.z);
+    coordinateSystem.set(0, 1, (double)this.basisVectorY.x);
+    coordinateSystem.set(1, 1, (double)this.basisVectorY.y);
+    coordinateSystem.set(2, 1, (double)this.basisVectorY.z);
+    coordinateSystem.set(0, 2, (double)this.basisVectorZ.x);
+    coordinateSystem.set(1, 2, (double)this.basisVectorZ.y);
+    coordinateSystem.set(2, 2, (double)this.basisVectorZ.z);
+    return coordinateSystem;
   }
   
   public PVector toFloorCoordinateSystem(PVector globalPosition){ // this method was not tested.
     PVector localPosition;
     if(this.isCalibrated){
-      Quaternion auxiliar = new Quaternion(0, PVector.sub(globalPosition, this.averageFeetPosition));
+      Quaternion auxiliar = new Quaternion(0, PVector.sub(globalPosition, this.centerPosition));
       localPosition = qMult(this.orientation, qMult(auxiliar, qConjugate(this.orientation))).vector;
     } else{
       localPosition = globalPosition;
@@ -211,7 +261,7 @@ class Floor{
     return localPosition;
   }
   
-  public Quaternion toFloorCoordinateSystem(Quaternion globalOrientation){
+  public Quaternion toFloorCoordinateSystem(Quaternion globalOrientation){ // this method was not tested.
     Quaternion localOrientation;
     if(this.isCalibrated){
       localOrientation = qMult(globalOrientation, qConjugate(this.orientation));
@@ -225,9 +275,11 @@ class Floor{
     if(this.isCalibrated){
       if(plane){
         this.drawPlane();
+        //this.plane.draw(this.boxDimension);
       }
       if(box){
-        this.drawBox();
+        //this.drawSVDBox();
+        //this.drawExtremePointsBox();
       }
       if(coordinateSystem){
         this.drawCoordinateSystem(true, false); // fromQuaternion, fromSVDBasis
@@ -238,9 +290,11 @@ class Floor{
       if(this.enableDraw){
         if(plane){
           this.drawPlane();
+          //this.plane.draw(this.boxDimension);
         }
         if(box){
-          this.drawBox();
+          //this.drawSVDBox();
+          this.drawExtremePointsBox();
         }
         if(coordinateSystem){
           this.drawCoordinateSystem(true, false); // fromQuaternion, fromSVDBasis
@@ -250,37 +304,83 @@ class Floor{
   }
   
   public void drawPlane(){
-    PVector floorCorner1 = PVector.add(this.averageFeetPosition, PVector.mult(this.basisVector1, this.boxDimension)).add(PVector.mult(this.basisVector2, this.boxDimension));
-    PVector floorCorner2 = PVector.add(this.averageFeetPosition, PVector.mult(this.basisVector1, -this.boxDimension)).add(PVector.mult(this.basisVector2, this.boxDimension));
-    PVector floorCorner3 = PVector.add(this.averageFeetPosition, PVector.mult(this.basisVector1, -this.boxDimension)).add(PVector.mult(this.basisVector2, -this.boxDimension));
-    PVector floorCorner4 = PVector.add(this.averageFeetPosition, PVector.mult(this.basisVector1, this.boxDimension)).add(PVector.mult(this.basisVector2, -this.boxDimension));
-
-    fill(90, 30, 90, 50);
-    beginShape();
-    vertex(reScaleX(floorCorner1.x), reScaleY(floorCorner1.y), reScaleZ(floorCorner1.z));
-    vertex(reScaleX(floorCorner2.x), reScaleY(floorCorner2.y), reScaleZ(floorCorner2.z));
-    vertex(reScaleX(floorCorner3.x), reScaleY(floorCorner3.y), reScaleZ(floorCorner3.z));
-    vertex(reScaleX(floorCorner4.x), reScaleY(floorCorner4.y), reScaleZ(floorCorner4.z));
-    endShape(CLOSE);
+    if(this.indexToBeUpdated > 3){
+      stroke(this.scene.roomColor);
+      fill(color(30, 60, 90));
+      beginShape();
+      vertex(reScaleX(this.planeCornerNN.x), reScaleY(this.planeCornerNN.y), reScaleZ(this.planeCornerNN.z));
+      vertex(reScaleX(this.planeCornerNP.x), reScaleY(this.planeCornerNP.y), reScaleZ(this.planeCornerNP.z));
+      vertex(reScaleX(this.planeCornerPP.x), reScaleY(this.planeCornerPP.y), reScaleZ(this.planeCornerPP.z));
+      vertex(reScaleX(this.planeCornerPN.x), reScaleY(this.planeCornerPN.y), reScaleZ(this.planeCornerPN.z));
+      endShape(CLOSE);
+    }
   }
   
-  public void drawBox(){
+  public void drawExtremePointsBox(){
     if(this.indexToBeUpdated > 3){
-      float floorWidth = this.boxDimension*this.singularValues.x;
-      float floorHeight = this.boxDimension*this.singularValues.y;
-      float floorThickness = this.boxDimension*this.singularValues.z;
+      stroke(this.scene.roomColor);
       
       // Lower face:
-      PVector floorCorner1 = PVector.add(this.averageFeetPosition, PVector.mult(this.basisVector1, floorHeight)).add(PVector.mult(this.basisVector2, floorWidth)).add(PVector.mult(this.basisVector3, floorThickness));
-      PVector floorCorner2 = PVector.add(this.averageFeetPosition, PVector.mult(this.basisVector1, -floorHeight)).add(PVector.mult(this.basisVector2, floorWidth)).add(PVector.mult(this.basisVector3, floorThickness));
-      PVector floorCorner3 = PVector.add(this.averageFeetPosition, PVector.mult(this.basisVector1, -floorHeight)).add(PVector.mult(this.basisVector2, -floorWidth)).add(PVector.mult(this.basisVector3, floorThickness));
-      PVector floorCorner4 = PVector.add(this.averageFeetPosition, PVector.mult(this.basisVector1, floorHeight)).add(PVector.mult(this.basisVector2, -floorWidth)).add(PVector.mult(this.basisVector3, floorThickness));
+      PVector floorCorner1 = PVector.mult(this.basisVectorX, PVector.dot(this.boxFacePointXN, this.basisVectorX)).add(PVector.mult(this.basisVectorY, PVector.dot(this.boxFacePointYN, this.basisVectorY))).add(PVector.mult(this.basisVectorZ, PVector.dot(this.boxFacePointZN, this.basisVectorZ))); // V---
+      PVector floorCorner2 = PVector.mult(this.basisVectorX, PVector.dot(this.boxFacePointXN, this.basisVectorX)).add(PVector.mult(this.basisVectorY, PVector.dot(this.boxFacePointYN, this.basisVectorY))).add(PVector.mult(this.basisVectorZ, PVector.dot(this.boxFacePointZP, this.basisVectorZ))); // V--+
+      PVector floorCorner3 = PVector.mult(this.basisVectorX, PVector.dot(this.boxFacePointXP, this.basisVectorX)).add(PVector.mult(this.basisVectorY, PVector.dot(this.boxFacePointYN, this.basisVectorY))).add(PVector.mult(this.basisVectorZ, PVector.dot(this.boxFacePointZP, this.basisVectorZ))); // V+-+
+      PVector floorCorner4 = PVector.mult(this.basisVectorX, PVector.dot(this.boxFacePointXP, this.basisVectorX)).add(PVector.mult(this.basisVectorY, PVector.dot(this.boxFacePointYN, this.basisVectorY))).add(PVector.mult(this.basisVectorZ, PVector.dot(this.boxFacePointZN, this.basisVectorZ))); // V+--
+      
+      // Upper face:
+      PVector floorCorner5 = PVector.mult(this.basisVectorX, PVector.dot(this.boxFacePointXN, this.basisVectorX)).add(PVector.mult(this.basisVectorY, PVector.dot(this.boxFacePointYP, this.basisVectorY))).add(PVector.mult(this.basisVectorZ, PVector.dot(this.boxFacePointZN, this.basisVectorZ))); // V-+-
+      PVector floorCorner6 = PVector.mult(this.basisVectorX, PVector.dot(this.boxFacePointXN, this.basisVectorX)).add(PVector.mult(this.basisVectorY, PVector.dot(this.boxFacePointYP, this.basisVectorY))).add(PVector.mult(this.basisVectorZ, PVector.dot(this.boxFacePointZP, this.basisVectorZ))); // V-++
+      PVector floorCorner7 = PVector.mult(this.basisVectorX, PVector.dot(this.boxFacePointXP, this.basisVectorX)).add(PVector.mult(this.basisVectorY, PVector.dot(this.boxFacePointYP, this.basisVectorY))).add(PVector.mult(this.basisVectorZ, PVector.dot(this.boxFacePointZP, this.basisVectorZ))); // V+++
+      PVector floorCorner8 = PVector.mult(this.basisVectorX, PVector.dot(this.boxFacePointXP, this.basisVectorX)).add(PVector.mult(this.basisVectorY, PVector.dot(this.boxFacePointYP, this.basisVectorY))).add(PVector.mult(this.basisVectorZ, PVector.dot(this.boxFacePointZN, this.basisVectorZ))); // V++-
+      
+      noFill();
+      stroke(this.scene.roomColor);
+      // Lower Face:
+      beginShape();
+      vertex(reScaleX(floorCorner1.x), reScaleY(floorCorner1.y), reScaleZ(floorCorner1.z));
+      vertex(reScaleX(floorCorner2.x), reScaleY(floorCorner2.y), reScaleZ(floorCorner2.z));
+      vertex(reScaleX(floorCorner3.x), reScaleY(floorCorner3.y), reScaleZ(floorCorner3.z));
+      vertex(reScaleX(floorCorner4.x), reScaleY(floorCorner4.y), reScaleZ(floorCorner4.z));
+      endShape(CLOSE);
+      
+      // Upper Face:
+      beginShape();
+      vertex(reScaleX(floorCorner5.x), reScaleY(floorCorner5.y), reScaleZ(floorCorner5.z));
+      vertex(reScaleX(floorCorner6.x), reScaleY(floorCorner6.y), reScaleZ(floorCorner6.z));
+      vertex(reScaleX(floorCorner7.x), reScaleY(floorCorner7.y), reScaleZ(floorCorner7.z));
+      vertex(reScaleX(floorCorner8.x), reScaleY(floorCorner8.y), reScaleZ(floorCorner8.z));
+      endShape(CLOSE);
+      
+      // Connecting Lines:
+      beginShape(LINES);
+      vertex(reScaleX(floorCorner1.x), reScaleY(floorCorner1.y), reScaleZ(floorCorner1.z));
+      vertex(reScaleX(floorCorner5.x), reScaleY(floorCorner5.y), reScaleZ(floorCorner5.z));
+      vertex(reScaleX(floorCorner2.x), reScaleY(floorCorner2.y), reScaleZ(floorCorner2.z));
+      vertex(reScaleX(floorCorner6.x), reScaleY(floorCorner6.y), reScaleZ(floorCorner6.z));
+      vertex(reScaleX(floorCorner3.x), reScaleY(floorCorner3.y), reScaleZ(floorCorner3.z));
+      vertex(reScaleX(floorCorner7.x), reScaleY(floorCorner7.y), reScaleZ(floorCorner7.z));
+      vertex(reScaleX(floorCorner4.x), reScaleY(floorCorner4.y), reScaleZ(floorCorner4.z));
+      vertex(reScaleX(floorCorner8.x), reScaleY(floorCorner8.y), reScaleZ(floorCorner8.z));
+      endShape();
+    }
+  }
+  
+  public void drawSVDBox(){
+    if(this.indexToBeUpdated > 3){
+      float floorWidth = this.boxDimension*this.singularValues.x;
+      float floorThickness = this.boxDimension*this.singularValues.y;
+      float floorLength = this.boxDimension*this.singularValues.z;
+      
+      // Lower face:
+      PVector floorCorner1 = PVector.add(this.averageFeetPosition, PVector.mult(this.basisVectorX, floorLength)).add(PVector.mult(this.basisVectorZ, floorWidth)).add(PVector.mult(this.basisVectorY, floorThickness));
+      PVector floorCorner2 = PVector.add(this.averageFeetPosition, PVector.mult(this.basisVectorX, -floorLength)).add(PVector.mult(this.basisVectorZ, floorWidth)).add(PVector.mult(this.basisVectorY, floorThickness));
+      PVector floorCorner3 = PVector.add(this.averageFeetPosition, PVector.mult(this.basisVectorX, -floorLength)).add(PVector.mult(this.basisVectorZ, -floorWidth)).add(PVector.mult(this.basisVectorY, floorThickness));
+      PVector floorCorner4 = PVector.add(this.averageFeetPosition, PVector.mult(this.basisVectorX, floorLength)).add(PVector.mult(this.basisVectorZ, -floorWidth)).add(PVector.mult(this.basisVectorY, floorThickness));
   
       // Upper Face:
-      PVector floorCorner5 = PVector.add(this.averageFeetPosition, PVector.mult(this.basisVector1, floorHeight)).add(PVector.mult(this.basisVector2, floorWidth)).add(PVector.mult(this.basisVector3, -floorThickness));
-      PVector floorCorner6 = PVector.add(this.averageFeetPosition, PVector.mult(this.basisVector1, -floorHeight)).add(PVector.mult(this.basisVector2, floorWidth)).add(PVector.mult(this.basisVector3, -floorThickness));
-      PVector floorCorner7 = PVector.add(this.averageFeetPosition, PVector.mult(this.basisVector1, -floorHeight)).add(PVector.mult(this.basisVector2, -floorWidth)).add(PVector.mult(this.basisVector3, -floorThickness));
-      PVector floorCorner8 = PVector.add(this.averageFeetPosition, PVector.mult(this.basisVector1, floorHeight)).add(PVector.mult(this.basisVector2, -floorWidth)).add(PVector.mult(this.basisVector3, -floorThickness));
+      PVector floorCorner5 = PVector.add(this.averageFeetPosition, PVector.mult(this.basisVectorX, floorLength)).add(PVector.mult(this.basisVectorZ, floorWidth)).add(PVector.mult(this.basisVectorY, -floorThickness));
+      PVector floorCorner6 = PVector.add(this.averageFeetPosition, PVector.mult(this.basisVectorX, -floorLength)).add(PVector.mult(this.basisVectorZ, floorWidth)).add(PVector.mult(this.basisVectorY, -floorThickness));
+      PVector floorCorner7 = PVector.add(this.averageFeetPosition, PVector.mult(this.basisVectorX, -floorLength)).add(PVector.mult(this.basisVectorZ, -floorWidth)).add(PVector.mult(this.basisVectorY, -floorThickness));
+      PVector floorCorner8 = PVector.add(this.averageFeetPosition, PVector.mult(this.basisVectorX, floorLength)).add(PVector.mult(this.basisVectorZ, -floorWidth)).add(PVector.mult(this.basisVectorY, -floorThickness));
       
       noFill();
       stroke(this.scene.roomColor);
@@ -321,7 +421,7 @@ class Floor{
       PVector coordinateSystemDirectionZ = qMult(qMult(this.orientation, new Quaternion(0, 0, 0, 1)), qConjugate(this.orientation)).vector; 
       //println("coordinateSystemDirectionX mag: "+coordinateSystemDirectionX.mag());
       pushMatrix();
-      translate(reScaleX(this.averageFeetPosition.x), reScaleY(this.averageFeetPosition.y), reScaleZ(this.averageFeetPosition.z));
+      translate(reScaleX(this.centerPosition.x), reScaleY(this.centerPosition.y), reScaleZ(this.centerPosition.z));
       strokeWeight(5);
       float size = 0.5; // meters
       stroke(255, 0, 0, 170);
@@ -338,11 +438,11 @@ class Floor{
       strokeWeight(5);
       float size = 0.5; // meters
       stroke(255, 0, 0, 170);
-      line(0, 0, 0, reScaleX(size*this.basisVector1.x), reScaleY(size*basisVector1.y), reScaleZ(size*basisVector1.z)); // The Processing's coordinate system is inconsistent (X cross Y != Z)
+      line(0, 0, 0, reScaleX(size*this.basisVectorX.x), reScaleY(size*this.basisVectorX.y), reScaleZ(size*this.basisVectorX.z)); // The Processing's coordinate system is inconsistent (X cross Y != Z)
       stroke(0, 255, 0, 170);
-      line(0, 0, 0, reScaleX(size*basisVector2.x), reScaleY(size*basisVector2.y), reScaleZ(size*basisVector2.z));
+      line(0, 0, 0, reScaleX(size*this.basisVectorY.x), reScaleY(size*this.basisVectorY.y), reScaleZ(size*this.basisVectorY.z));
       stroke(0, 0, 255, 170);
-      line(0, 0, 0, reScaleX(size*basisVector3.x), reScaleY(size*basisVector3.y), reScaleZ(size*basisVector3.z));
+      line(0, 0, 0, reScaleX(size*this.basisVectorZ.x), reScaleY(size*this.basisVectorZ.y), reScaleZ(size*this.basisVectorZ.z));
       popMatrix();
     }
   }

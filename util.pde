@@ -1,7 +1,7 @@
 /**
  * Method to convert X dimensions from real world to screen dimensions (meters to pixels)
  * @param meters real world dimension
- * @return pixels screen dimension
+ * @return screen dimension
  */
 float reScaleX(float meters){
   float horizontalMargin = max(width-height, 0)/2;
@@ -11,7 +11,7 @@ float reScaleX(float meters){
 /**
  * Method to convert Y dimensions from real world to screen dimensions (meters to pixels)
  * @param meters real world dimension
- * @return pixels screen dimension
+ * @return screen dimension
  */
 float reScaleY(float meters){
   float verticalMargin = max(height-width, 0)/2;
@@ -21,7 +21,7 @@ float reScaleY(float meters){
 /**
  * Method to convert Z dimensions from real world to screen dimensions (meters to pixels)
  * @param meters real world dimension
- * @return pixels screen dimension
+ * @return screen dimension
  */
 float reScaleZ(float meters){
   return map(meters, 0, 4, 0, min(width, height));
@@ -96,4 +96,42 @@ void drawPie3D(PVector v1, PVector v2, float size){
     vertex(size*auxiliarPVector.x, size*auxiliarPVector.y, size*auxiliarPVector.z);
   }
   endShape(CLOSE);
+}
+
+PVector maxFromMatrix(Matrix matrix){
+  double[] max = new double[3];
+  double[][] matrixArray = matrix.getArray();
+  for(int row=0; row < matrixArray.length; row++){
+    for(int col=0; col<3; col++){
+      if(matrixArray[row][col] > max[col]) max[col] = matrixArray[row][col];
+    }
+  }
+  return new PVector((float)max[0], (float)max[1], (float)max[2]);
+}
+
+PVector minFromMatrix(Matrix matrix){
+  double[] min = new double[3];
+  double[][] matrixArray = matrix.getArray();
+  for(int row=0; row < matrixArray.length; row++){
+    for(int col=0; col<3; col++){
+      if(matrixArray[row][col] < min[col]) min[col] = matrixArray[row][col];
+    }
+  }
+  return new PVector((float)min[0], (float)min[1], (float)min[2]);
+}
+
+float maxFromArray(double[] array){
+  double max = 0;
+  for(int row=0; row < array.length; row++){
+    if(array[row] > max) max = array[row];
+  }
+  return (float) max;
+}
+
+float minFromArray(double[] array){
+  double min = 0;
+  for(int row=0; row < array.length; row++){
+    if(array[row] < min) min = array[row];
+  }
+  return (float) min;
 }

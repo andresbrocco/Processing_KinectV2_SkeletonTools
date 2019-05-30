@@ -65,7 +65,7 @@ public class Scene{
       }
     }
     this.drawKinectFieldOfView();
-    this.floor.draw(true, true, false); // coordinateSystem, box, plane
+    this.floor.draw(true, true, true); // coordinateSystem, box, plane
   }
   
   private void setCamera(){
