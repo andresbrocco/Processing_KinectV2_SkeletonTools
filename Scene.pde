@@ -66,13 +66,20 @@ public class Scene{
     }
     this.drawKinectFieldOfView();
     this.floor.draw(true, true, true); // coordinateSystem, box, plane
+    
   }
+  
   
   private void setCamera(){
     perspective();
     beginCamera();
     camera();
     translate(this.cameraTransX, this.cameraTransY, this.cameraTransZ);
+    /* Testing Steering Wheel rotating the scene:
+    for (Skeleton skeleton:this.activeSkeletons.values()) {
+      this.cameraRotX = this.cameraRotX + skeleton.features.steeringWheelPitch*skeleton.features.steeringWheelPitchSize/10;
+      this.cameraRotY = this.cameraRotY + skeleton.features.steeringWheelYaw*skeleton.features.steeringWheelYawSize/10;
+    }*/
     rotateX(this.cameraRotX);
     rotateY(this.cameraRotY);
     endCamera();

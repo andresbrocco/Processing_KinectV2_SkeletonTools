@@ -77,7 +77,7 @@ public class Skeleton{
     }
     this.smoothSkeleton(currentDeltaT, previousDeltaT, dampingFactor);
     this.appearedLastInFrame = frameCount;
-    this.features.updateFeatures();
+    this.features.update();
   }
   
   private int[] convertIndexColorToRGB(int indexColor){ // The color shown at the kinect studio interface is not the color that it sends. I think....
@@ -139,18 +139,29 @@ public class Skeleton{
     if(handStates){
       this.drawHandStates();
     }
+    // Both below shall be deleted
     // testing relative position to the floor coordinate system:
-    if(this.scene.floor.isCalibrated) this.testingRelativePosition();
-    
+    //if(this.scene.floor.isCalibrated) this.testingRelativePosition();
+    // Testing Steering Wheel:
+    //this.drawSteeringWheel();
   }
   
-  private void testingRelativePosition(){
+  private void drawSteeringWheel(){ // For testing
+    PVector vertex1 = PVector.mult(new PVector(cos(this.features.steeringWheelYaw), 0, sin(this.features.steeringWheelYaw)), 100*this.features.steeringWheelYawSize);
+    PVector vertex2 = PVector.mult(new PVector(-cos(this.features.steeringWheelYaw), 0, -sin(this.features.steeringWheelYaw)), 100*this.features.steeringWheelYawSize);
+    PVector vertex3 = PVector.mult(new PVector(0, cos(this.features.steeringWheelPitch), sin(this.features.steeringWheelPitch)), 100*this.features.steeringWheelPitchSize);
+    PVector vertex4 = PVector.mult(new PVector(0, -cos(this.features.steeringWheelPitch), -sin(this.features.steeringWheelPitch)), 100*this.features.steeringWheelPitchSize);
+    strokeWeight(5);
+    stroke(color(128, 67, 23));
+    line(vertex1.x, vertex1.y, vertex1.z, vertex2.x, vertex2.y, vertex2.z);
+    stroke(color(67, 23, 128));
+    line(vertex3.x, vertex3.y, vertex3.z, vertex4.x, vertex4.y, vertex4.z);
+  }
+  
+  private void testingRelativePosition(){ // For testing
     pushMatrix();
     translate(reScaleX(this.scene.floor.centerPosition.x), reScaleY(this.scene.floor.centerPosition.y), reScaleZ(this.scene.floor.centerPosition.z));
     PVector point = PVector.mult(this.scene.floor.basisVectorX, this.features.leftHandPositionLocal.x).add(PVector.mult(this.scene.floor.basisVectorY, this.features.leftHandPositionLocal.y)).add(PVector.mult(this.scene.floor.basisVectorZ, this.features.leftHandPositionLocal.z));
-    
-    
-//    PVector point = PVector.dot(this.features.leftHandPositionLocal, this.scene.floor.basisVectorX), PVector.dot(this.features.leftHandPositionLocal, this.scene.floor.basisVectorY), PVector.dot(this.features.leftHandPositionLocal, this.scene.floor.basisVectorZ)
     line(0, 0, 0, reScaleX(point.x), reScaleY(point.y), reScaleZ(point.z));
     popMatrix();
   }
