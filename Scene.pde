@@ -3,6 +3,7 @@ import KinectPV2.*;
 KinectPV2 kinect = new KinectPV2(this);
 
 public class Scene{
+  public Floor floor;
   private float frameRate_ = 10;
   private float cameraTransX = 600;
   private float cameraTransY = 420;
@@ -14,7 +15,12 @@ public class Scene{
   private HashMap<Integer, Skeleton> activeSkeletons = new HashMap<Integer, Skeleton>();
   private float currentDeltaT;
   private float previousDeltaT;
-  public Floor floor;
+  public boolean drawScene = true;
+  public boolean drawMeasured = false;
+  public boolean drawBoneRelativeOrientation = false;
+  public boolean drawJointOrientation = false;
+  public boolean drawHandRadius = false;
+  public boolean drawHandStates = false;
   
   public Scene(){
     this.currentDeltaT = 1/this.frameRate_; // static deltaT
@@ -56,17 +62,16 @@ public class Scene{
     }
   }
   
-  public void draw(boolean measuredSkeletons, boolean jointOrientation, boolean boneRelativeOrientation, boolean handRadius, boolean handStates){  
+  public void draw(){  
     background(this.backgroundColor);
     this.setCamera();
     if(!this.activeSkeletons.isEmpty()){
       for (Skeleton skeleton:this.activeSkeletons.values()) {
-        skeleton.draw(measuredSkeletons, jointOrientation, boneRelativeOrientation, handRadius, handStates);
+        skeleton.draw(this.drawMeasured, this.drawJointOrientation, this.drawBoneRelativeOrientation, this.drawHandRadius, this.drawHandStates);
       }
     }
     this.drawKinectFieldOfView();
     this.floor.draw(true, true, true); // coordinateSystem, box, plane
-    
   }
   
   

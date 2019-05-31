@@ -174,10 +174,6 @@ public class Joint{
     this.measuredDirectionZ = qMult(qMult(this.measuredOrientation, new Quaternion(0, 0, 0, 1)), qConjugate(this.measuredOrientation)).vector; 
   }
   
-  public float distanceToFloor(){ // Shall be deprecated
-    return this.skeleton.scene.floor.plane.distanceTo(this.estimatedPosition);
-  }
-  
   public void draw(color colorEstimated, boolean measuredSkeleton, boolean jointOrientation){
     this.drawPosition(colorEstimated);
     if(jointOrientation && !this.isEndJoint){

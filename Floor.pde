@@ -15,11 +15,9 @@ class Floor{
   private int indexToBeUpdated = 0;
   private boolean bufferIsFull = false;
   private float boxDimension = 2; // "meters"
-  private boolean isWaitingForUser = false;
   private boolean isCalibrating = false;
   private boolean isCalibrated = false;
   private boolean enableDraw = false;
-  private Plane plane;
   private PVector planeCornerNN; // V-0-
   private PVector planeCornerNP; // V-0+
   private PVector planeCornerPP; // V+0+
@@ -35,7 +33,21 @@ class Floor{
     this.scene = scene;
   }
   
-  public void controlledCalibration(){
+  public void manageCalibration(){
+    if(scene.floor.isCalibrating){
+      scene.floor.isCalibrating = false;
+      if(scene.floor.indexToBeUpdated > 3){
+        scene.floor.isCalibrated = true;
+        println("Floor calibration complete!");
+      } else {
+        println("Aborted floor calibration");
+      }
+    } else {
+      thread("startCalibration");
+    }
+  }
+  
+  public void calibrate(){
     println("Floor Calibration instructions: ");
     println("The calibrator needs at least 10 snapshots of the skeleton in different spots of the room to have a good estimate.");
     println("The reccomended position is upright with legs opened at 45~60 deg.");
@@ -50,43 +62,6 @@ class Floor{
         }
       }
       delay(100); // minimum time between snapshots
-    }
-  }
-
-  public void timedCalibration(){
-    println("Floor Calibration instructions: ");
-    println("The calibrator needs at least 10 snapshots of the skeleton in different spots of the room to have a good estimate.");
-    println("The reccomended position is upright with legs opened at 45~60 deg.");
-    println("The opened legs partially overcomes the issue with reflecting floors.");
-    println("There will be 5 seconds between each snapshot to walk to a new spot.");
-    println("Press ENTER when you are ready");
-    this.isWaitingForUser = true;
-    int startTime = millis();
-    while(true){ // 10 seconds to start the calibration
-      if(millis()-startTime < 10000){
-        if(this.isCalibrating){
-          break;
-        }
-      } else {
-      println("Sorry, timed out! Start calibration again if you want...");
-      break;
-      }
-      delay(100);
-    }
-    int snapshotCount = 0;
-    snapshotLoop:
-    while(this.isCalibrating){
-      for(int countdown = 2; countdown>0; countdown--){
-        println("Snapshot in "+ countdown + " seconds");
-        delay(1000);
-        if(!this.isCalibrating){
-          this.isCalibrated = true;
-          break snapshotLoop;
-        }
-      }
-      this.addScene();
-      snapshotCount++;
-      println("Snapshot count: " + snapshotCount);
     }
   }
   
@@ -165,7 +140,6 @@ class Floor{
       findBoxFacePoints(filledHistoryOfFeetPositions);
       findCenterPosition();
       this.orientation = rotationMatrixToQuaternion2(floorCoordinateSystemRotationMatrix);
-      this.plane = new Plane(this.basisVectorX, this.basisVectorZ, this.centerPosition);
       this.enableDraw = true;
     }
   }
@@ -281,7 +255,6 @@ class Floor{
     if(this.isCalibrated){
       if(plane){
         this.drawPlane();
-        //this.plane.draw(this.boxDimension);
       }
       if(box){
         //this.drawSVDBox();
@@ -296,7 +269,6 @@ class Floor{
       if(this.enableDraw){
         if(plane){
           this.drawPlane();
-          //this.plane.draw(this.boxDimension);
         }
         if(box){
           //this.drawSVDBox();
@@ -472,10 +444,6 @@ class Floor{
   }
 }
 
-void startTimedCalibration(){ // This method exists to make possible to calibrate on another thread other than the draw() loop.
-  scene.floor.timedCalibration(); 
-}
-
-void startControlledCalibration(){ // This method exists to make possible to calibrate on another thread other than the draw() loop.
-  scene.floor.controlledCalibration();
+void startCalibration(){ // This method exists to make possible to calibrate on another thread other than the draw() loop.
+  scene.floor.calibrate();
 }

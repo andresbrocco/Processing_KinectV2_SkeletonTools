@@ -22,8 +22,9 @@ void draw()
   }
   
   scene.update();
-  if(drawSkeletonTool){
-    scene.draw(true, true, true, true, false); // measuredSkeletons, jointOrientation, boneRelativeOrientation, handRadius, handStates
+  
+  if(scene.drawScene){
+    scene.draw(); // measuredSkeletons, jointOrientation, boneRelativeOrientation, handRadius, handStates
   } else{
     // Your animation algorithm should be placed here
     background(color(128));
@@ -32,47 +33,13 @@ void draw()
 }
 
 void keyPressed(){
-  // Press t to enter floor calibration process (timed)
-  if(key == 't'){
-    if(scene.floor.isCalibrating){
-      scene.floor.isCalibrating = false;
-      if(scene.floor.indexToBeUpdated > 3){
-        scene.floor.isCalibrated = true;
-        println("Floor calibration complete!");
-      } else{
-        println("Aborted floor calibration");
-      }
-    }else{
-      thread("startTimedCalibration");
-    }
-  }
-  // Press c to enter floor calibration process (controlled)
-  if(key == 'c'){
-    if(scene.floor.isCalibrating){
-      scene.floor.isCalibrating = false;
-      if(scene.floor.indexToBeUpdated > 3){
-        scene.floor.isCalibrated = true;
-        println("Floor calibration complete!");
-      } else{
-        println("Aborted floor calibration");
-      }
-    }else{
-      thread("startControlledCalibration");
-    }
-  }
-  // Press d to draw Skeleton Tool
-  if(key == 'd'){
-    if(drawSkeletonTool){
-      drawSkeletonTool = false;
-      println("drawSkeletonTool disabled");
-    }else{
-      drawSkeletonTool = true;
-      println("drawSkeletonTool enabled");
-    }
-  }
-  if(scene.floor.isWaitingForUser && (key==ENTER || key==RETURN)){
-    scene.floor.isCalibrating  = true;
-  }
+  if(key == 'f') scene.floor.manageCalibration();
+  if(key == 's') scene.drawScene = !scene.drawScene;
+  if(key == 'm') scene.drawMeasured = !scene.drawMeasured;
+  if(key == 'b') scene.drawBoneRelativeOrientation = !scene.drawBoneRelativeOrientation;
+  if(key == 'j') scene.drawJointOrientation = !scene.drawJointOrientation;
+  if(key == 'h') scene.drawHandRadius = !scene.drawHandRadius;
+  if(key == 'H') scene.drawHandStates = !scene.drawHandStates;
 }
 
 void mouseDragged() {
