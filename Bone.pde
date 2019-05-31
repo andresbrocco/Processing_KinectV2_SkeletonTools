@@ -6,7 +6,7 @@ public class Bone{
   private float measuredLength;
   private float averageMeasuredLength;
   private float measuredLengthStandardDeviation; //std of measuredLength
-  public float measuredLengthConfidence;
+  private float measuredLengthConfidence;
   private float estimatedLength;
   private PVector estimatedPosition;
   private PVector measuredDirection;

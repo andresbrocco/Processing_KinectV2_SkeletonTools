@@ -125,11 +125,11 @@ public class Joint{
     this.estimatedAcceleration = PVector.sub(newEstimatedVelocity, this.estimatedVelocity).div(currentDeltaT);
     this.estimatedVelocity = newEstimatedVelocity;
     this.estimatedPosition = newEstimatedPosition;
-    /*
+
     if(this.jointId == FOOT_LEFT){
       println("LeftFoot accel: "+this.estimatedAcceleration.mag());
       println("LeftFoot velocity: "+this.estimatedVelocity.mag());
-    }*/
+    }
   }
   
   public void calculateEstimates(float[] confidenceParameters, float currentDeltaT, float previousDeltaT, float dampingFactor){

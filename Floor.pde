@@ -34,26 +34,27 @@ class Floor{
   }
   
   public void manageCalibration(){
-    if(scene.floor.isCalibrating){
-      scene.floor.isCalibrating = false;
-      if(scene.floor.indexToBeUpdated > 3){
-        scene.floor.isCalibrated = true;
+    if(this.isCalibrating){
+      this.isCalibrating = false;
+      if(this.indexToBeUpdated > 3){
+        this.isCalibrated = true;
         println("Floor calibration complete!");
       } else {
         println("Aborted floor calibration");
       }
     } else {
+      this.isCalibrating = true;
+      this.isCalibrated = false;
       thread("startCalibration");
     }
   }
   
   public void calibrate(){
     println("Floor Calibration instructions: ");
-    println("The calibrator needs at least 10 snapshots of the skeleton in different spots of the room to have a good estimate.");
+    println("The calibrator needs at least ~10 snapshots of the skeleton in different spots of the room to have a good estimate.");
     println("The reccomended position is upright with legs opened at 45~60 deg.");
     println("The opened legs partially overcomes the issue with reflecting floors.");
     println("Get in position and clap to get a snapshot.");
-    this.isCalibrating = true;
     while(this.isCalibrating){
       for(Skeleton skeleton:this.scene.activeSkeletons.values()){
         if(skeleton.features.distanceBetweenHands < 0.1){
@@ -65,17 +66,10 @@ class Floor{
     }
   }
   
-  public void addScene(){
-    for(Skeleton skeleton:this.scene.activeSkeletons.values()){
-      this.addSkeletonFeet(skeleton);
-    }
-    this.calculateFloor();
-  }
-  
   private void addSkeletonFeet(Skeleton skeleton){
     if(!bufferIsFull){
       float maxAccelerationAccepted = 0.5; // test this parameter
-      float maxVelocityAccepted = 0.5; // test this parameter
+      float maxVelocityAccepted = 0.1; // test this parameter
       if(skeleton.joints[FOOT_LEFT].trackingState == 2 && skeleton.joints[FOOT_LEFT].estimatedAcceleration.mag() < maxAccelerationAccepted && skeleton.joints[FOOT_LEFT].estimatedVelocity.mag() < maxVelocityAccepted){ // if FootLeft is tracked and steady
         this.addFoot(skeleton.joints[FOOT_LEFT]);  
       }
@@ -86,24 +80,16 @@ class Floor{
   }
   
   private void addFoot(Joint footJoint){ 
-    if(this.indexToBeUpdated < 3){
+    if(this.indexToBeUpdated < maximumFeetPositions){ 
       this.historyOfFeetPositions.set(this.indexToBeUpdated, 0, footJoint.estimatedPosition.x);
       this.historyOfFeetPositions.set(this.indexToBeUpdated, 1, footJoint.estimatedPosition.y);
       this.historyOfFeetPositions.set(this.indexToBeUpdated, 2, footJoint.estimatedPosition.z);
+      this.updateAverageFeetPosition();
       this.indexToBeUpdated++;
-    } 
+    }
     else {
-      if(this.indexToBeUpdated < maximumFeetPositions){ 
-        this.historyOfFeetPositions.set(this.indexToBeUpdated, 0, footJoint.estimatedPosition.x);
-        this.historyOfFeetPositions.set(this.indexToBeUpdated, 1, footJoint.estimatedPosition.y);
-        this.historyOfFeetPositions.set(this.indexToBeUpdated, 2, footJoint.estimatedPosition.z);
-        this.updateAverageFeetPosition();
-        this.indexToBeUpdated++;
-      }
-      else {
-        this.bufferIsFull = true;
-        println("buffer is full");
-      }
+      this.bufferIsFull = true;
+      println("buffer is full");
     }
   }
   
@@ -434,13 +420,7 @@ class Floor{
       noStroke();
       sphere(5);
       popMatrix();
-    }
-    pushMatrix();
-    translate(reScaleX(averageFeetPosition.x), reScaleY(averageFeetPosition.y), reScaleZ(averageFeetPosition.z));
-    fill(255, 128, 64, 128);
-    noStroke();
-    sphere(5);
-    popMatrix();    
+    }  
   }
 }
 
