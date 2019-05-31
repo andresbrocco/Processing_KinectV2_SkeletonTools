@@ -66,7 +66,7 @@ public class Skeleton{
     this.features = new Features(this);
   }
   
-  public void update(KSkeleton kSkeleton, float currentDeltaT, float previousDeltaT){  //<>//
+  public void update(KSkeleton kSkeleton, float currentDeltaT, float previousDeltaT){  //<>// //<>//
     this.isTracked = kSkeleton.isTracked(); 
     this.measuredHandStates[0] = kSkeleton.getLeftHandState();
     this.measuredHandStates[1] = kSkeleton.getRightHandState();
@@ -93,7 +93,7 @@ public class Skeleton{
     return rgb;
   }
   
-  private void smoothSkeleton(float currentDeltaT, float previousDeltaT, float dampingFactor){  //<>// //<>// //<>//
+  private void smoothSkeleton(float currentDeltaT, float previousDeltaT, float dampingFactor){  //<>// //<>// //<>// //<>//
     this.joints[1].calculateEstimates(this.confidenceParameters, currentDeltaT, previousDeltaT, dampingFactor); // trigger the chain reaction by calling the SpineMid to be calculated.
     this.smoothHandRadius(this.alpha);
   }
@@ -139,6 +139,20 @@ public class Skeleton{
     if(handStates){
       this.drawHandStates();
     }
+    // testing relative position to the floor coordinate system:
+    if(this.scene.floor.isCalibrated) this.testingRelativePosition();
+    
+  }
+  
+  private void testingRelativePosition(){
+    pushMatrix();
+    translate(reScaleX(this.scene.floor.centerPosition.x), reScaleY(this.scene.floor.centerPosition.y), reScaleZ(this.scene.floor.centerPosition.z));
+    PVector point = PVector.mult(this.scene.floor.basisVectorX, this.features.leftHandPositionLocal.x).add(PVector.mult(this.scene.floor.basisVectorY, this.features.leftHandPositionLocal.y)).add(PVector.mult(this.scene.floor.basisVectorZ, this.features.leftHandPositionLocal.z));
+    
+    
+//    PVector point = PVector.dot(this.features.leftHandPositionLocal, this.scene.floor.basisVectorX), PVector.dot(this.features.leftHandPositionLocal, this.scene.floor.basisVectorY), PVector.dot(this.features.leftHandPositionLocal, this.scene.floor.basisVectorZ)
+    line(0, 0, 0, reScaleX(point.x), reScaleY(point.y), reScaleZ(point.z));
+    popMatrix();
   }
   
   public void drawHandRadius(){

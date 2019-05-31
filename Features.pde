@@ -22,7 +22,7 @@ class Features{
     this.distanceBetweenHands = PVector.sub(skeleton.joints[7].estimatedPosition, skeleton.joints[11].estimatedPosition).mag();
     
     // To get orientations and positions relative to the floor coordinate system, use the floor method:
-    this.leftHandPositionLocal = this.skeleton.scene.floor.toFloorCoordinateSystem(this.skeleton.joints[HAND_LEFT].estimatedPosition); // not tested yet;
+    this.leftHandPositionLocal = this.skeleton.scene.floor.toFloorCoordinateSystem(this.skeleton.joints[HAND_LEFT].estimatedPosition); 
     this.leftHandOrientationLocal = this.skeleton.scene.floor.toFloorCoordinateSystem(this.skeleton.joints[HAND_LEFT].estimatedOrientation); // not tested yet;
   }
 }

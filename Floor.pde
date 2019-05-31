@@ -100,10 +100,11 @@ class Floor{
   private void addSkeletonFeet(Skeleton skeleton){
     if(!bufferIsFull){
       float maxAccelerationAccepted = 0.5; // test this parameter
-      if(skeleton.joints[FOOT_LEFT].trackingState == 2 && skeleton.joints[FOOT_LEFT].estimatedAcceleration.mag() < maxAccelerationAccepted){ // if FootLeft is tracked and steady
+      float maxVelocityAccepted = 0.5; // test this parameter
+      if(skeleton.joints[FOOT_LEFT].trackingState == 2 && skeleton.joints[FOOT_LEFT].estimatedAcceleration.mag() < maxAccelerationAccepted && skeleton.joints[FOOT_LEFT].estimatedVelocity.mag() < maxVelocityAccepted){ // if FootLeft is tracked and steady
         this.addFoot(skeleton.joints[FOOT_LEFT]);  
       }
-      if(skeleton.joints[FOOT_RIGHT].trackingState == 2 && skeleton.joints[FOOT_RIGHT].estimatedAcceleration.mag() < maxAccelerationAccepted){ // if FootRight is tracked and steady
+      if(skeleton.joints[FOOT_RIGHT].trackingState == 2 && skeleton.joints[FOOT_RIGHT].estimatedAcceleration.mag() < maxAccelerationAccepted && skeleton.joints[FOOT_RIGHT].estimatedVelocity.mag() < maxVelocityAccepted){ // if FootRight is tracked and steady
         this.addFoot(skeleton.joints[FOOT_RIGHT]);  
       }
     }
@@ -151,7 +152,12 @@ class Floor{
 
   private void calculateFloor(){
     if(this.indexToBeUpdated > 3){
-      Matrix filledHistoryOfFeetPositions = this.historyOfFeetPositions.getMatrix(0, this.indexToBeUpdated-1, 0, 2);
+      Matrix filledHistoryOfFeetPositions = new Matrix(this.indexToBeUpdated, 3);
+      for(int row=0; row<this.indexToBeUpdated-1; row++){
+        filledHistoryOfFeetPositions.set(row, 0, this.historyOfFeetPositions.get(row, 0)-this.averageFeetPosition.x);
+        filledHistoryOfFeetPositions.set(row, 1, this.historyOfFeetPositions.get(row, 1)-this.averageFeetPosition.y);
+        filledHistoryOfFeetPositions.set(row, 2, this.historyOfFeetPositions.get(row, 2)-this.averageFeetPosition.z);
+      }
       this.svd = filledHistoryOfFeetPositions.svd();
       double[] singularValues = this.svd.getSingularValues();
       double[][] basisVectors = this.svd.getV().getArray();
@@ -181,22 +187,22 @@ class Floor{
       float basisYProjection = PVector.dot(point, this.basisVectorY);
       float basisZProjection = PVector.dot(point, this.basisVectorZ);
       if(basisXProjection > positiveFarIndex.x) {
-        positiveFarIndex.x = basisXProjection; this.boxFacePointXP = point;
+        positiveFarIndex.x = basisXProjection; this.boxFacePointXP = PVector.add(point, this.averageFeetPosition);
       }
       if(basisYProjection > positiveFarIndex.y) {
-        positiveFarIndex.y = basisYProjection; this.boxFacePointYP = point;
+        positiveFarIndex.y = basisYProjection; this.boxFacePointYP = PVector.add(point, this.averageFeetPosition);
       }
       if(basisZProjection > positiveFarIndex.z) {
-        positiveFarIndex.z = basisZProjection; this.boxFacePointZP = point;
+        positiveFarIndex.z = basisZProjection; this.boxFacePointZP = PVector.add(point, this.averageFeetPosition);
       }
       if(basisXProjection < negativeFarIndex.x) {
-        negativeFarIndex.x = basisXProjection; this.boxFacePointXN = point;
+        negativeFarIndex.x = basisXProjection; this.boxFacePointXN = PVector.add(point, this.averageFeetPosition);
       }
       if(basisYProjection < negativeFarIndex.y) {
-        negativeFarIndex.y = basisYProjection; this.boxFacePointYN = point;
+        negativeFarIndex.y = basisYProjection; this.boxFacePointYN = PVector.add(point, this.averageFeetPosition);
       }
       if(basisZProjection < negativeFarIndex.z) {
-        negativeFarIndex.z = basisZProjection; this.boxFacePointZN = point;
+        negativeFarIndex.z = basisZProjection; this.boxFacePointZN = PVector.add(point, this.averageFeetPosition);
       }
     }
   }
@@ -250,11 +256,11 @@ class Floor{
     return coordinateSystem;
   }
   
-  public PVector toFloorCoordinateSystem(PVector globalPosition){ // this method was not tested.
+  public PVector toFloorCoordinateSystem(PVector globalPosition){
     PVector localPosition;
     if(this.isCalibrated){
       Quaternion auxiliar = new Quaternion(0, PVector.sub(globalPosition, this.centerPosition));
-      localPosition = qMult(this.orientation, qMult(auxiliar, qConjugate(this.orientation))).vector;
+      localPosition = qMult(qConjugate(this.orientation), qMult(auxiliar, this.orientation)).vector;
     } else{
       localPosition = globalPosition;
     }
@@ -306,7 +312,7 @@ class Floor{
   public void drawPlane(){
     if(this.indexToBeUpdated > 3){
       stroke(this.scene.roomColor);
-      fill(color(30, 60, 90));
+      fill(color(30, 60, 90, 128));
       beginShape();
       vertex(reScaleX(this.planeCornerNN.x), reScaleY(this.planeCornerNN.y), reScaleZ(this.planeCornerNN.z));
       vertex(reScaleX(this.planeCornerNP.x), reScaleY(this.planeCornerNP.y), reScaleZ(this.planeCornerNP.z));
