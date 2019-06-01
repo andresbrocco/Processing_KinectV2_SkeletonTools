@@ -77,7 +77,7 @@ public class Skeleton{
  * Receives new raw skeleton data from kinect, smooth its movement and updates its features. 
  * @param kSkeleton raw skeleton data from kinect.
  */
-  public void update(KSkeleton kSkeleton){   //<>// //<>// //<>// //<>// //<>//
+  public void update(KSkeleton kSkeleton){   //<>//
     this.isTracked = kSkeleton.isTracked(); 
     this.measuredHandStates[0] = kSkeleton.getLeftHandState();
     this.measuredHandStates[1] = kSkeleton.getRightHandState();
@@ -115,7 +115,7 @@ public class Skeleton{
  * The human body Center of Mass is right on the "spineMid" joint, so the smoothing altorithm starts updating from this joint.
  * This triggers a chain reaction, because each joint calls its next bone to be updated, and each bone calls its next joint, until the body extremes are reached.
  */
-  private void smoothSkeleton(){ //<>// //<>// //<>// //<>// //<>//
+  private void smoothSkeleton(){ //<>//
     this.joints[1].update(this.confidenceParameters); // trigger the chain reaction by calling the SpineMid to be calculated.
     this.smoothHandRadius(this.alpha);
   }
@@ -179,7 +179,7 @@ public class Skeleton{
     // testing relative position to the floor coordinate system:
     //if(this.scene.floor.isCalibrated) this.testingRelativePosition();
     // Testing Steering Wheel:
-    this.drawSteeringWheel();
+    //this.drawSteeringWheel();
   }
   
 /**
