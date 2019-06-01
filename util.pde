@@ -27,15 +27,35 @@ float reScaleZ(float meters){
   return map(meters, 0, 4, 0, min(width, height));
 }
 
+/**
+ * Given a distribution (mean and standard deviation), find how close a sample x is to the mean.
+ * @param x sample to be evaluated.
+ * @param mean distribution average.
+ * @param std distribution standard deviation.
+ * @return 1 if x=mean; 0 if x=far from mean;
+ */
 float howCloseToTheMean(float x, float mean, float std){
   return exp(-pow((x-mean)/std, 2)/2); // Un-normalized Gaussian distribution
 }
 
+/**
+ * Calculate Euler angles between orientation q1 and orientation q2.
+ * @param q1 first orientation quaternion.
+ * @param q2 second orientation quaternion.
+ * @return PVector of Euler Angles from q1 to q2.
+ */
 PVector calculateRelativeOrientation(Quaternion q1, Quaternion q2){ // relativeOrientation = childOrientation*inverse(parentOrientation). 
   Quaternion qRelative = qMult(q1, qConjugate(q2)); // From q1 to q2
   return quaternionToEulerAngles(qRelative);
 }
 
+/**
+ * Spherical linear interpolation/extrapolation for PVectors.
+ * @param v1 PVector 1.
+ * @param v2 PVector 2.
+ * @param step percentage of path from v1 to v2.
+ * @return PVector between v1 and v2 (if 0<step<1).
+ */
 PVector slerp(PVector v1, PVector v2, float step){
   float theta = PVector.angleBetween(v1, v2);
   if(sin(theta)==0){
@@ -46,46 +66,12 @@ PVector slerp(PVector v1, PVector v2, float step){
   return PVector.add(PVector.mult(v1,v1Multiplier), PVector.mult(v2,v2Multiplier));
 }
 
-PVector pVectorAbs(PVector v){
-  PVector vAbs = new PVector(0,0,0);
-  vAbs.x = abs(v.x);
-  vAbs.y = abs(v.y);
-  vAbs.z = abs(v.z);
-  return vAbs;
-}
-
-PVector pVectorExp(PVector v){
-  PVector vExp = new PVector(0,0,0);
-  vExp.x = exp(v.x);
-  vExp.y = exp(v.y);
-  vExp.z = exp(v.z);
-  return vExp;
-}
-
-PVector pVectorPow(PVector v, float p){
-  PVector vPow = new PVector(0,0,0);
-  vPow.x = pow(v.x, p);
-  vPow.y = pow(v.y, p);
-  vPow.z = pow(v.z, p);
-  return vPow;
-}
-
-PVector pVectorDiv(PVector v1, PVector v2){ // element-wise division
-  PVector vDiv = new PVector(0,0,0);
-  vDiv.x = v1.x/v2.x;
-  vDiv.y = v1.y/v2.y;
-  vDiv.z = v1.z/v2.z;
-  return vDiv;
-}
-
-PVector pVectorMult(PVector v1, PVector v2){
-  PVector vMult = new PVector(0,0,0);
-  vMult.x = v1.x*v2.x;
-  vMult.y = v1.y*v2.y;
-  vMult.z = v1.z*v2.z;
-  return vMult;
-}
-
+/**
+ * Draw a flat 3-dimensional "pie-chart" around the current coordinate system. 
+ * @param v1 direction of begining of the pie.
+ * @param v2 direction of end of the pie.
+ * @param size radius of the pie.
+ */
 void drawPie3D(PVector v1, PVector v2, float size){
   float angleBetweenVectors = PVector.angleBetween(v1, v2);
   int nOfVertexes = (int)(angleBetweenVectors/(PI/12))+2;
@@ -96,42 +82,4 @@ void drawPie3D(PVector v1, PVector v2, float size){
     vertex(size*auxiliarPVector.x, size*auxiliarPVector.y, size*auxiliarPVector.z);
   }
   endShape(CLOSE);
-}
-
-PVector maxFromMatrix(Matrix matrix){
-  double[] max = new double[3];
-  double[][] matrixArray = matrix.getArray();
-  for(int row=0; row < matrixArray.length; row++){
-    for(int col=0; col<3; col++){
-      if(matrixArray[row][col] > max[col]) max[col] = matrixArray[row][col];
-    }
-  }
-  return new PVector((float)max[0], (float)max[1], (float)max[2]);
-}
-
-PVector minFromMatrix(Matrix matrix){
-  double[] min = new double[3];
-  double[][] matrixArray = matrix.getArray();
-  for(int row=0; row < matrixArray.length; row++){
-    for(int col=0; col<3; col++){
-      if(matrixArray[row][col] < min[col]) min[col] = matrixArray[row][col];
-    }
-  }
-  return new PVector((float)min[0], (float)min[1], (float)min[2]);
-}
-
-float maxFromArray(double[] array){
-  double max = 0;
-  for(int row=0; row < array.length; row++){
-    if(array[row] > max) max = array[row];
-  }
-  return (float) max;
-}
-
-float minFromArray(double[] array){
-  double min = 0;
-  for(int row=0; row < array.length; row++){
-    if(array[row] < min) min = array[row];
-  }
-  return (float) min;
 }

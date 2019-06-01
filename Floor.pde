@@ -1,5 +1,10 @@
 import Jama.*; // Java Matrix Library: https://math.nist.gov/javanumerics/jama/
-
+/**
+ * The floor contains the information about the environment the kinect is operating.
+ * When calibrated, it contains the information of where is the ground, and limits of the room.
+ * These information are useful to normalize all the features regardless of the kinect orientation and position.
+ * In this way, the sensor could be placed in a more strategic spot, where it would sense a bigger volume of the room.
+ */
 class Floor{
   private Scene scene;
   private int maximumFeetPositions = 500;
@@ -17,7 +22,6 @@ class Floor{
   private float boxDimension = 2; // "meters"
   private boolean isCalibrating = false;
   private boolean isCalibrated = false;
-  private boolean enableDraw = false;
   private PVector planeCornerNN; // V-0-
   private PVector planeCornerNP; // V-0+
   private PVector planeCornerPP; // V+0+
@@ -33,6 +37,9 @@ class Floor{
     this.scene = scene;
   }
   
+/**
+ * Starts and stops the calibration process.
+ */
   public void manageCalibration(){
     if(this.isCalibrating){
       this.isCalibrating = false;
@@ -49,6 +56,9 @@ class Floor{
     }
   }
   
+/**
+ * Watches for distance between hands. When they are close enough, like a "clap", take a snapshot of each foot and calculate the new floor.
+ */
   public void calibrate(){
     println("Floor Calibration instructions: ");
     println("The calibrator needs at least ~10 snapshots of the skeleton in different spots of the room to have a good estimate.");
@@ -66,6 +76,9 @@ class Floor{
     }
   }
   
+/**
+ * Add feet just if they are steady, with velocity and acceleration close to zero.
+ */
   private void addSkeletonFeet(Skeleton skeleton){
     if(!bufferIsFull){
       float maxAccelerationAccepted = 0.5; // test this parameter
@@ -79,6 +92,9 @@ class Floor{
     }
   }
   
+/**
+ * Add row in the matrix of acquired data. Each row is a foot position.
+ */
   private void addFoot(Joint footJoint){ 
     if(this.indexToBeUpdated < maximumFeetPositions){ 
       this.historyOfFeetPositions.set(this.indexToBeUpdated, 0, footJoint.estimatedPosition.x);
@@ -93,6 +109,9 @@ class Floor{
     }
   }
   
+/**
+ * Calculate the average position of the foot data points.
+ */
   private void updateAverageFeetPosition(){
     double[] sumOfFeetPositions = new double[3];
     double[] averageFeetPosition = new double[3];
@@ -111,6 +130,11 @@ class Floor{
     this.averageFeetPosition = new PVector((float)averageFeetPosition[0], (float)averageFeetPosition[1], (float)averageFeetPosition[2]);
   }
 
+/**
+ * Perform a singular value decomposition over the matrix of foot positions, to get the principal components directions of the floor, thus stablishing a new coordinate system.
+ * Find what are the most extreme points in this new coordinate system (boundary limits of the room). Based on these points, find the center of the room, to place the new CSys.
+ * Also calculate the quaternion that represents the rotation from the kinect CSys to the floor CSys.
+ */
   private void calculateFloor(){
     if(this.indexToBeUpdated > 3){
       Matrix filledHistoryOfFeetPositions = new Matrix(this.indexToBeUpdated, 3);
@@ -123,21 +147,15 @@ class Floor{
       double[] singularValues = this.svd.getSingularValues();
       double[][] basisVectors = this.svd.getV().getArray();
       Matrix floorCoordinateSystemRotationMatrix = arrangeBasisVectorDirections(basisVectors, singularValues);
-      findBoxFacePoints(filledHistoryOfFeetPositions);
-      findCenterPosition();
-      this.orientation = rotationMatrixToQuaternion2(floorCoordinateSystemRotationMatrix);
-      this.enableDraw = true;
+      this.findBoxFacePoints(filledHistoryOfFeetPositions);
+      this.findRoomLimits();
+      this.orientation = rotationMatrixToQuaternion(floorCoordinateSystemRotationMatrix);
     }
   }
   
-  private void findCenterPosition(){
-    this.planeCornerNN = PVector.mult(this.basisVectorX, PVector.dot(this.boxFacePointXN, this.basisVectorX)).add(PVector.mult(this.basisVectorY, PVector.dot(this.averageFeetPosition, this.basisVectorY))).add(PVector.mult(this.basisVectorZ, PVector.dot(this.boxFacePointZN, this.basisVectorZ))); // V-0-
-    this.planeCornerNP = PVector.mult(this.basisVectorX, PVector.dot(this.boxFacePointXN, this.basisVectorX)).add(PVector.mult(this.basisVectorY, PVector.dot(this.averageFeetPosition, this.basisVectorY))).add(PVector.mult(this.basisVectorZ, PVector.dot(this.boxFacePointZP, this.basisVectorZ))); // V-0+
-    this.planeCornerPP = PVector.mult(this.basisVectorX, PVector.dot(this.boxFacePointXP, this.basisVectorX)).add(PVector.mult(this.basisVectorY, PVector.dot(this.averageFeetPosition, this.basisVectorY))).add(PVector.mult(this.basisVectorZ, PVector.dot(this.boxFacePointZP, this.basisVectorZ))); // V+0+
-    this.planeCornerPN = PVector.mult(this.basisVectorX, PVector.dot(this.boxFacePointXP, this.basisVectorX)).add(PVector.mult(this.basisVectorY, PVector.dot(this.averageFeetPosition, this.basisVectorY))).add(PVector.mult(this.basisVectorZ, PVector.dot(this.boxFacePointZN, this.basisVectorZ))); // V+0-
-    this.centerPosition = PVector.add(this.planeCornerNN, this.planeCornerNP).add(this.planeCornerPP).add(this.planeCornerPN).div(4);
-  }
-  
+/**
+ * Find the most extreme points in relation to the new coordinate system directions.
+ */
   private void findBoxFacePoints(Matrix filledHistoryOfFeetPositions){
     PVector positiveFarIndex = new PVector(-10,-10,-10); //gambiarra
     PVector negativeFarIndex = new PVector(10,10,10); //gambiarra
@@ -167,6 +185,20 @@ class Floor{
     }
   }
   
+/**
+ * Find the corners and center of the room based its extreme points.
+ */
+  private void findRoomLimits(){
+    this.planeCornerNN = PVector.mult(this.basisVectorX, PVector.dot(this.boxFacePointXN, this.basisVectorX)).add(PVector.mult(this.basisVectorY, PVector.dot(this.averageFeetPosition, this.basisVectorY))).add(PVector.mult(this.basisVectorZ, PVector.dot(this.boxFacePointZN, this.basisVectorZ))); // V-0-
+    this.planeCornerNP = PVector.mult(this.basisVectorX, PVector.dot(this.boxFacePointXN, this.basisVectorX)).add(PVector.mult(this.basisVectorY, PVector.dot(this.averageFeetPosition, this.basisVectorY))).add(PVector.mult(this.basisVectorZ, PVector.dot(this.boxFacePointZP, this.basisVectorZ))); // V-0+
+    this.planeCornerPP = PVector.mult(this.basisVectorX, PVector.dot(this.boxFacePointXP, this.basisVectorX)).add(PVector.mult(this.basisVectorY, PVector.dot(this.averageFeetPosition, this.basisVectorY))).add(PVector.mult(this.basisVectorZ, PVector.dot(this.boxFacePointZP, this.basisVectorZ))); // V+0+
+    this.planeCornerPN = PVector.mult(this.basisVectorX, PVector.dot(this.boxFacePointXP, this.basisVectorX)).add(PVector.mult(this.basisVectorY, PVector.dot(this.averageFeetPosition, this.basisVectorY))).add(PVector.mult(this.basisVectorZ, PVector.dot(this.boxFacePointZN, this.basisVectorZ))); // V+0-
+    this.centerPosition = PVector.add(this.planeCornerNN, this.planeCornerNP).add(this.planeCornerPP).add(this.planeCornerPN).div(4);
+  }
+  
+/**
+ * Correct the directions of the principal components found by SVD so that the new CSys points in a direction close to the kinect CSys direction.
+ */
   private Matrix arrangeBasisVectorDirections(double[][] basisVectors, double[] singularValues){ // Set the right direction for each basis vector, so that its CSys points in a direction close to the kinect CSys.
     PVector basisVector1 = new PVector((float)basisVectors[0][0], (float)basisVectors[1][0], (float)basisVectors[2][0]);
     PVector basisVector2 = new PVector((float)basisVectors[0][1], (float)basisVectors[1][1], (float)basisVectors[2][1]);
@@ -216,6 +248,11 @@ class Floor{
     return coordinateSystem;
   }
   
+/**
+ * Converts a postion from the kinect CSys to the floor CSys.
+ * @param globalPosition PVector position relative to the Kinect coordinate system.
+ * @return PVector position relative to the floor coordinate system.
+ */
   public PVector toFloorCoordinateSystem(PVector globalPosition){
     PVector localPosition;
     if(this.isCalibrated){
@@ -227,6 +264,11 @@ class Floor{
     return localPosition;
   }
   
+/**
+ * Converts an orientation from the kinect CSys to the floor CSys.
+ * @param globalOrientation Quaternion orientation relative to the Kinect coordinate system.
+ * @return Quaternion orientation relative to the floor coordinate system.
+ */
   public Quaternion toFloorCoordinateSystem(Quaternion globalOrientation){ // this method was not tested.
     Quaternion localOrientation;
     if(this.isCalibrated){
@@ -237,36 +279,45 @@ class Floor{
     return localOrientation;
   }
   
-  public void draw(boolean coordinateSystem, boolean box, boolean plane){
+/**
+ * During calibration, draw a box containing all the data points. After calibrated, draw the resulting plane.
+ * @param drawCoordinateSystem boolean to toggle visibility of the floor coordinate system.
+ * @param drawBox boolean to toggle visibility of the container box.
+ * @param drawPlane boolean to toggle visibility of the resulting plane.
+ */
+  public void draw(boolean drawCoordinateSystem, boolean drawBox, boolean drawPlane){
     if(this.isCalibrated){
-      if(plane){
+      if(drawPlane){
         this.drawPlane();
       }
-      if(box){
+      if(drawBox){
         //this.drawSVDBox();
         //this.drawExtremePointsBox();
       }
-      if(coordinateSystem){
+      if(drawCoordinateSystem){
         this.drawCoordinateSystem(true, false); // fromQuaternion, fromSVDBasis
       }
     }
     else if(this.isCalibrating){
       this.drawData();
-      if(this.enableDraw){
-        if(plane){
+      if(this.indexToBeUpdated > 3){
+        if(drawPlane){
           this.drawPlane();
         }
-        if(box){
+        if(drawBox){
           //this.drawSVDBox();
           this.drawExtremePointsBox();
         }
-        if(coordinateSystem){
+        if(drawCoordinateSystem){
           this.drawCoordinateSystem(true, false); // fromQuaternion, fromSVDBasis
         }
       }
     }
   }
   
+/**
+ * Draw the resulting plane.
+ */
   public void drawPlane(){
     if(this.indexToBeUpdated > 3){
       stroke(this.scene.roomColor);
@@ -280,6 +331,9 @@ class Floor{
     }
   }
   
+/**
+ * Draw the box that contains all the data points.
+ */
   public void drawExtremePointsBox(){
     if(this.indexToBeUpdated > 3){
       stroke(this.scene.roomColor);
@@ -328,6 +382,9 @@ class Floor{
     }
   }
   
+/**
+ * Draw the box that the SVD algorithm first came with (box dimensions are relative to the singular values).
+ */
   public void drawSVDBox(){
     if(this.indexToBeUpdated > 3){
       float floorWidth = this.boxDimension*this.singularValues.x;
@@ -378,6 +435,11 @@ class Floor{
     }
   }
   
+/**
+ * Draw the floor coordinate system.
+ * For debugging purposes, there is the possibility to draw the CSys obtained directly from SVD basis.
+ * It is "unstable", because changes direction randomly each time it is recalculated. Thats why I made the arrangeBasisVectorDirections() method.
+ */
   private void drawCoordinateSystem(boolean fromQuaternion, boolean fromSVDBasis){
     if(fromQuaternion){
       PVector coordinateSystemDirectionX = qMult(qMult(this.orientation, new Quaternion(0, 1, 0, 0)), qConjugate(this.orientation)).vector; 
@@ -411,6 +473,9 @@ class Floor{
     }
   }
   
+/**
+ * Draw the data points.
+ */
   public void drawData(){
     sphereDetail(6);
     for(int j=0; j<this.indexToBeUpdated; j++){
@@ -424,6 +489,9 @@ class Floor{
   }
 }
 
-void startCalibration(){ // This method exists to make possible to calibrate on another thread other than the draw() loop.
+/**
+ * This method exists to make possible to calibrate on another thread other than the draw() loop.
+ */
+void startCalibration(){ 
   scene.floor.calibrate();
 }

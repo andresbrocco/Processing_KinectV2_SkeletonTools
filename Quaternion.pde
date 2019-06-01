@@ -1,5 +1,8 @@
 import Jama.*; // Java Matrix Library: https://math.nist.gov/javanumerics/jama/
 
+/**
+ * This class implements some useful quaternion operations.
+ */
 public class Quaternion{
   private float real;
   private PVector vector;
@@ -23,6 +26,9 @@ public class Quaternion{
     this.vector = vector;
   }
   
+/**
+ * @return a copy instead of a pointer to the original object.
+ */
   public Quaternion getCopy(){
     Quaternion qCopy = new Quaternion(0,0,0,0);
     qCopy.real = this.real;
@@ -32,10 +38,16 @@ public class Quaternion{
     return qCopy;
   }
   
+/**
+ * @return magnitude of the Quaternion.
+ */
   public float mag(){
     return sqrt(pow(this.real, 2)+pow(this.vector.x, 2)+pow(this.vector.y, 2)+pow(this.vector.z, 2));
   }
   
+/**
+ * Normalize the Quaternion.
+ */
   public void normalize(){
     if(this.mag() < 0.0001){ // avoid division by zero.
       this.real = 1;
@@ -47,7 +59,12 @@ public class Quaternion{
     }
   }
 }
-
+  
+/**
+ * Get the conjugate of a quaternion
+ * @param q quaternion to be conjugated
+ * @return conjugate of q
+ */
 Quaternion qConjugate(Quaternion q){
   Quaternion qConj = new Quaternion(0,0,0,0);
   qConj.real = q.real;
@@ -55,6 +72,13 @@ Quaternion qConjugate(Quaternion q){
   return qConj;
 }
 
+/**
+ * Spherical Linear Interpolation between quaternions.
+ * @param q1 first quaternion
+ * @param q2 second quaternion
+ * @param step percentage of path between q1 and q2. (or beyond, if you want)
+ * @return interpolation/extrapolation from q1 to q2.
+ */
 Quaternion qSlerp(Quaternion q1, Quaternion q2, float step){ 
   q1.normalize();
   q2.normalize();
@@ -83,6 +107,12 @@ Quaternion qSlerp(Quaternion q1, Quaternion q2, float step){
   }
 }
 
+/**
+ * Efficient quaternion multiplication.
+ * @param q1 first quaternion.
+ * @param q2 second quaternion.
+ * @return q1*q2 (using special quaternion algebra).
+ */
 Quaternion qMult(Quaternion q1, Quaternion q2){
   Quaternion qRes = new Quaternion(0, 0, 0, 0);
   qRes.real = q1.real*q2.real - PVector.dot(q1.vector, q2.vector);
@@ -90,6 +120,11 @@ Quaternion qMult(Quaternion q1, Quaternion q2){
   return qRes;
 }
 
+/**
+ * Convert from quaternion representation of orientation to Euler Angles. (intrinsic Tait-Bryan angles following z-y'-x'').
+ * @param q1 quaternion representing orientation.
+ * @return PVector of euler angles (roll, pitch, yaw) in radians.
+ */
 PVector quaternionToEulerAngles(Quaternion q){
   PVector eulerAngles = new PVector(0,0,0);
   eulerAngles.x = atan2(2*(q.real*q.vector.x + q.vector.y*q.vector.z), 1-2*(q.vector.x*q.vector.x+q.vector.y*q.vector.y));
@@ -98,41 +133,12 @@ PVector quaternionToEulerAngles(Quaternion q){
   return eulerAngles;
 }
 
-Quaternion rotationMatrixToQuaternion(Matrix rotationMatrix){
-  println("determinant of rotationMatrix: "+ rotationMatrix.det()); // must be 1. if -1, one basisVector should have been inverted.
-  PVector rotationAxis = new PVector();
-  EigenvalueDecomposition eigenvalueDecomposition = rotationMatrix.eig();
-  double[] eigenvaluesReal = eigenvalueDecomposition.getRealEigenvalues();
-  double[] eigenvaluesImag = eigenvalueDecomposition.getImagEigenvalues();
-  Matrix eigenvectors = eigenvalueDecomposition.getV();
-  for(int eig=0; eig<3; eig++){
-    float tol = 0.01; // numerical tolerance
-    if(eigenvaluesReal[eig]>1-tol && eigenvaluesReal[eig]<1+tol && eigenvaluesImag[eig]<tol && eigenvaluesImag[eig]>-tol){
-      rotationAxis = new PVector((float)eigenvectors.get(0, eig), (float)eigenvectors.get(1, eig), (float)eigenvectors.get(2, eig));
-      println("FOUND eigenvalue: "+eigenvaluesReal[eig] +"+i*"+eigenvaluesImag[eig]+ " with eigenvector: "+rotationAxis.x + " "+ rotationAxis.y + " "+rotationAxis.z);
-      break;
-    }
-    else{
-      println("wrong eigenvalue: "+eigenvaluesReal[eig] +"+i*"+eigenvaluesImag[eig]);
-    }
-  }
-  float cosTheta = (float)(rotationMatrix.trace()-1)/2;
-  if(cosTheta > 1){
-    println("warning: cosTheta > 1. Truncating to 1");
-    cosTheta = 1;
-  } else if(cosTheta < -1){
-    println("warning: cosTheta < -1. Truncating to -1");
-    cosTheta = -1;
-  }
-  float theta = acos(cosTheta);
-  println("theta = "+ theta);
-  Quaternion quaternion = new Quaternion();
-  quaternion.real = cos(theta/2);
-  quaternion.vector = PVector.mult(rotationAxis, sin(theta/2));
-  println("quaternion: "+quaternion.real+" "+quaternion.vector+ ". With norm: "+ quaternion.mag());
-  return quaternion;
-}
-
+/**
+ * Get the minimum angle between two quaternions.
+ * @param q1 quaternion 1.
+ * @param q2 quaternion 2.
+ * @return angle in radians (0<theta<PI).
+ */
 float angleBetweenQuaternions(Quaternion q1, Quaternion q2){
   q1.normalize();
   q2.normalize();
@@ -144,6 +150,14 @@ float angleBetweenQuaternions(Quaternion q1, Quaternion q2){
   return theta;
 }
 
+/**
+ * Convert from axis-angle to Quaternion representation of rotation.
+ * @param angle rotation around the unitary vector (x, y, z).
+ * @param x
+ * @param y
+ * @param z
+ * @return quaternion.
+ */
 Quaternion axisAngleToQuaternion(float angle, float x, float y, float z){
   Quaternion quaternion = new Quaternion();
   quaternion.real = cos(angle/2);
@@ -151,7 +165,13 @@ Quaternion axisAngleToQuaternion(float angle, float x, float y, float z){
   return quaternion;
 }
 
-Quaternion rotationMatrixToQuaternion2(Matrix m){
+/**
+ * Convert a rotation matrix to a quaternion representation of rotation.
+ * This method takes care of some singularities, but I've noticed some rare weird behaviour that might come from this method.
+ * @param matrix rotation matrix.
+ * @return quaternion 
+ */
+Quaternion rotationMatrixToQuaternion(Matrix m){
   float angle, x, y, z;
   float epsilon = 0.01; // margin to allow for rounding errors
   float epsilon2 = 0.1; // margin to distinguish between 0 and 180 degrees

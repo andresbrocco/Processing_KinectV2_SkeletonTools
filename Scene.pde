@@ -2,6 +2,10 @@ import KinectPV2.*;
 
 KinectPV2 kinect = new KinectPV2(this);
 
+  
+/**
+ * The scene contains all the environment relative to the kinect, from the floor to the active skeletons.
+ */
 public class Scene{
   public Floor floor;
   private float frameRate_ = 10;
@@ -23,8 +27,8 @@ public class Scene{
   public boolean drawHandStates = false;
   
   public Scene(){
-    this.currentDeltaT = 1/this.frameRate_; // static deltaT
-    this.previousDeltaT = this.currentDeltaT; // static deltaT
+    this.currentDeltaT = 1/this.frameRate_; 
+    this.previousDeltaT = this.currentDeltaT;
     this.floor = new Floor(this);
   }
   
@@ -33,7 +37,12 @@ public class Scene{
     kinect.init();  
   }
   
+  
+/**
+ * Get new data from kinect and call its skeletons to update.
+ */
   public void update(){
+    this.previousDeltaT = this.currentDeltaT;
     this.currentDeltaT = 1/frameRate;
     ArrayList<KSkeleton> kSkeletonArray =  kinect.getSkeleton3d();
     for (int bodyNumber = 0; bodyNumber < kSkeletonArray.size(); bodyNumber++){
@@ -42,13 +51,17 @@ public class Scene{
         this.activeSkeletons.put(kSkeleton.getIndexColor(), new Skeleton(kSkeleton, this));
       }
       Skeleton skeleton = activeSkeletons.get(kSkeleton.getIndexColor());
-      skeleton.update(kSkeleton, this.currentDeltaT, this.previousDeltaT);
+      skeleton.update(kSkeleton);
     }
     this.cleanDeadSkeletons();
   }
   
+  
+/**
+ * If a skeleton is abscent for 5 seconds, it is deleted.
+ */
   private void cleanDeadSkeletons(){
-    int timeTolerance = 5; // skeleton abscent for 5 seconds is deleted
+    int timeTolerance = 5; // seconds
     int s = 0;
     int[] skeletonsToRemove = new int[6];
     for(Skeleton skeleton:activeSkeletons.values()){
@@ -61,7 +74,10 @@ public class Scene{
       this.activeSkeletons.remove(s_);  
     }
   }
-  
+    
+/**
+ * Set camera, draw skeletons, kinect field of view and floor (if calibrated).
+ */
   public void draw(){  
     background(this.backgroundColor);
     this.setCamera();
@@ -74,22 +90,27 @@ public class Scene{
     this.floor.draw(true, true, true); // coordinateSystem, box, plane
   }
   
-  
+/**
+ * Set camera position and orientation.
+ */
   private void setCamera(){
     perspective();
     beginCamera();
     camera();
     translate(this.cameraTransX, this.cameraTransY, this.cameraTransZ);
-    /* Testing Steering Wheel rotating the scene:
+    /* Testing Steering Wheel rotating the scene:*/
     for (Skeleton skeleton:this.activeSkeletons.values()) {
       this.cameraRotX = this.cameraRotX + skeleton.features.steeringWheelPitch*skeleton.features.steeringWheelPitchSize/10;
       this.cameraRotY = this.cameraRotY + skeleton.features.steeringWheelYaw*skeleton.features.steeringWheelYawSize/10;
-    }*/
+    }
     rotateX(this.cameraRotX);
     rotateY(this.cameraRotY);
     endCamera();
   }
   
+/**
+ * Draw kinect coordinate system on screen. (actually the X axis is pointing to the wrong side, I don't know why)
+ */
   private void drawKinectCoordinateSystem(){
     float size = 0.5; // meters
     strokeWeight(5);
@@ -101,6 +122,9 @@ public class Scene{
     line(0, 0, 0, 0, 0, reScaleZ(size));
   }
   
+/**
+ * Draw kinect Field of View.
+ */
   private void drawKinectFieldOfView(){ 
     this.drawKinectCoordinateSystem();
     // KinectV2

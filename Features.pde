@@ -1,3 +1,6 @@
+/**
+ * Each skeleton has a feature object. All indirect features must be calculated here. This is where you have fun!
+ */
 class Features{
   private Skeleton skeleton;
   public float[] legAngle = new float[2]; // {Left, Right}
@@ -17,7 +20,10 @@ class Features{
     this.skeleton = skeleton;
     this.update();
   }
-  
+
+/**
+ * Updates all the indirect features.
+ */
   public void update(){ // substitute indexes by respective joint name from "skeletonConstants" tab.
     this.legAngle[0] = PVector.angleBetween(PVector.sub(skeleton.joints[13].estimatedPosition, skeleton.joints[14].estimatedPosition), PVector.sub(skeleton.joints[12].estimatedPosition, skeleton.joints[13].estimatedPosition));
     this.legAngle[1] = PVector.angleBetween(PVector.sub(skeleton.joints[17].estimatedPosition, skeleton.joints[18].estimatedPosition), PVector.sub(skeleton.joints[16].estimatedPosition, skeleton.joints[17].estimatedPosition));

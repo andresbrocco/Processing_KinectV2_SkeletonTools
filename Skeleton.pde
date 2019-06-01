@@ -1,7 +1,12 @@
+/**
+ * A skeleton contains all the information related to a specific body. It also contains the algorithms to smooth its movement and draw itself on screen.
+ */
 public class Skeleton{
   private Scene scene;
   private int indexColor; // Which body is it (color = - M*255*256^2 - C*255*256 - Y*255 -1)
   private int[] skeletonColorRGB = new int[3]; // in RGB
+  private color colorEstimated;
+  private color colorMeasured;
   private int appearedLastInFrame = 0; // counter to keep track if skeleton is dead or not.
   private float alpha = 0.33; // alpha = confidence of new measurement
   private float beta = 0.33; // beta = confidence of estimated position based on previous position and velocity
@@ -45,6 +50,8 @@ public class Skeleton{
     this.scene = scene;
     this.indexColor = kSkeleton.getIndexColor();
     this.skeletonColorRGB = this.convertIndexColorToRGB(this.indexColor);
+    this.colorEstimated = color(this.skeletonColorRGB[0], this.skeletonColorRGB[1], this.skeletonColorRGB[2], 170);
+    this.colorMeasured = color(this.skeletonColorRGB[0], this.skeletonColorRGB[1], this.skeletonColorRGB[2], 85);
     this.isTracked = kSkeleton.isTracked();
     this.measuredHandStates[0] = kSkeleton.getLeftHandState();
     this.measuredHandStates[1] = kSkeleton.getRightHandState();
@@ -55,7 +62,7 @@ public class Skeleton{
     }
     for(int b=0; b<24; b++){ // Create all bones, tell the childJoint who is its parentJoint and parentBone
     //The SpineMid Joint won't have a parentJoint, neither a parentBone. 
-      this.bones[b] = new Bone(b, this.joints[skeletonConnections[b][1]], this.joints[skeletonConnections[b][2]]);
+      this.bones[b] = new Bone(this, b, this.joints[skeletonConnections[b][1]], this.joints[skeletonConnections[b][2]]);
       this.joints[skeletonConnections[b][2]].setParentJoint(this.joints[skeletonConnections[b][1]]);
       this.joints[skeletonConnections[b][2]].setParentBone(this.bones[b]);
     }
@@ -66,7 +73,11 @@ public class Skeleton{
     this.features = new Features(this);
   }
   
-  public void update(KSkeleton kSkeleton, float currentDeltaT, float previousDeltaT){  //<>// //<>//
+/**
+ * Receives new raw skeleton data from kinect, smooth its movement and updates its features. 
+ * @param kSkeleton raw skeleton data from kinect.
+ */
+  public void update(KSkeleton kSkeleton){   //<>// //<>// //<>// //<>// //<>//
     this.isTracked = kSkeleton.isTracked(); 
     this.measuredHandStates[0] = kSkeleton.getLeftHandState();
     this.measuredHandStates[1] = kSkeleton.getRightHandState();
@@ -75,11 +86,17 @@ public class Skeleton{
     for (int j=0; j<25; j++){
       joints[j].receiveNewMeasurements(kJoints[j]);
     }
-    this.smoothSkeleton(currentDeltaT, previousDeltaT, dampingFactor);
+    this.smoothSkeleton();
     this.appearedLastInFrame = frameCount;
     this.features.update();
   }
   
+/**
+ * The Kinect sends a color index in a format somewhat similar to "color = - M*255*256^2 - C*255*256 - Y*255 -1".
+ * This method converts it back to rgb space.
+ * @param indexColor color sent from Kinect.
+ * @return rgb color in RGB space.
+ */
   private int[] convertIndexColorToRGB(int indexColor){ // The color shown at the kinect studio interface is not the color that it sends. I think....
     int C = (-indexColor-1>>16);
     int M = ((-indexColor-1-(C<<16))>>8);
@@ -93,21 +110,34 @@ public class Skeleton{
     return rgb;
   }
   
-  private void smoothSkeleton(float currentDeltaT, float previousDeltaT, float dampingFactor){  //<>// //<>// //<>// //<>//
-    this.joints[1].calculateEstimates(this.confidenceParameters, currentDeltaT, previousDeltaT, dampingFactor); // trigger the chain reaction by calling the SpineMid to be calculated.
+/**
+ * Method to smooth the skeleton data.
+ * The human body Center of Mass is right on the "spineMid" joint, so the smoothing altorithm starts updating from this joint.
+ * This triggers a chain reaction, because each joint calls its next bone to be updated, and each bone calls its next joint, until the body extremes are reached.
+ */
+  private void smoothSkeleton(){ //<>// //<>// //<>// //<>// //<>//
+    this.joints[1].update(this.confidenceParameters); // trigger the chain reaction by calling the SpineMid to be calculated.
     this.smoothHandRadius(this.alpha);
   }
   
+/**
+ * Method to smooth the handRadius.
+ * @param alpha interpolation step.
+ */
   private void smoothHandRadius(float alpha){
     for(int h=0; h<2; h++){
       if(this.measuredHandRadius[h] == -1){ // if hand is not tracked.
         break;
       } else{
-        this.estimatedHandRadius[h] = this.estimatedHandRadius[h]*(1-alpha) + this.measuredHandRadius[h]*alpha;
+        this.estimatedHandRadius[h] = lerp(this.estimatedHandRadius[h], this.measuredHandRadius[h], alpha);
       }
     }
   }
   
+/**
+ * Method to convert from Kinect handState to the handRadius. The handRadius is 0 if closed, 0.5 if lasso or unknown, 1 if opened.
+ * If it is not tracked, handRadius is -1 to indicate it must be discarded.
+ */
   private void measureHandRadius(){ // -1 if hand is not tracked or unknown.
     for(int h=0; h<2; h++){
       if(this.measuredHandStates[h] == 4){ // HAND_LASSO
@@ -124,28 +154,37 @@ public class Skeleton{
     }
   }
   
-  public void draw(boolean measuredSkeleton, boolean jointOrientation, boolean boneRelativeOrientation,  boolean handRadius, boolean handStates){
-    color colorEstimated = color(this.skeletonColorRGB[0], this.skeletonColorRGB[1], this.skeletonColorRGB[2], 170);
-    color colorMeasured = color(this.skeletonColorRGB[0], this.skeletonColorRGB[1], this.skeletonColorRGB[2], 85);
+/**
+ * Method to draw the skeleton on screen.
+ * @param drawMeasured indicates if measured bones should be drawn.
+ * @param drawJointOrientation indicates if joint orientations should be drawn.
+ * @param drawBoneRelativeOrientation indicates if bone relative orientations should be drawn.
+ * @param drawHandRadius indicates if hand radius' should be drawn.
+ * @param drawHandStates indicates if raw hand states should be drawn.
+ */
+  public void draw(boolean drawMeasured, boolean drawJointOrientation, boolean drawBoneRelativeOrientation,  boolean drawHandRadius, boolean drawHandStates){
     for(Bone bone:this.bones){
-      bone.draw(colorEstimated, colorMeasured, measuredSkeleton, boneRelativeOrientation);
+      bone.draw(drawMeasured, drawBoneRelativeOrientation);
     }
     for(Joint joint:this.joints){
-      joint.draw(colorEstimated, measuredSkeleton, jointOrientation);
+      joint.draw(drawMeasured, drawJointOrientation);
     }
-    if(handRadius){
+    if(drawHandRadius){
       this.drawHandRadius();
     }
-    if(handStates){
+    if(drawHandStates){
       this.drawHandStates();
     }
     // Both below shall be deleted
     // testing relative position to the floor coordinate system:
     //if(this.scene.floor.isCalibrated) this.testingRelativePosition();
     // Testing Steering Wheel:
-    //this.drawSteeringWheel();
+    this.drawSteeringWheel();
   }
   
+/**
+ * For testing only, shall be deprecated
+ */
   private void drawSteeringWheel(){ // For testing
     PVector vertex1 = PVector.mult(new PVector(cos(this.features.steeringWheelYaw), 0, sin(this.features.steeringWheelYaw)), 100*this.features.steeringWheelYawSize);
     PVector vertex2 = PVector.mult(new PVector(-cos(this.features.steeringWheelYaw), 0, -sin(this.features.steeringWheelYaw)), 100*this.features.steeringWheelYawSize);
@@ -158,6 +197,9 @@ public class Skeleton{
     line(vertex3.x, vertex3.y, vertex3.z, vertex4.x, vertex4.y, vertex4.z);
   }
   
+/**
+ * For testing only, shall be deprecated
+ */
   private void testingRelativePosition(){ // For testing
     pushMatrix();
     translate(reScaleX(this.scene.floor.centerPosition.x), reScaleY(this.scene.floor.centerPosition.y), reScaleZ(this.scene.floor.centerPosition.z));
@@ -166,6 +208,9 @@ public class Skeleton{
     popMatrix();
   }
   
+/**
+ * Draws a shallow sphere around each hand with its respective size.
+ */
   public void drawHandRadius(){
     int maxSphereRadius = 25;
     stroke(color(0, 0, 0, 85));
@@ -192,6 +237,9 @@ public class Skeleton{
     }
   }
   
+/**
+ * Draw the raw hand states received from kinect. Draw nothing if hand is not tracked or unknown.
+ */
   public void drawHandStates(){
     int sphereRadius = 25;
     color handStateStrokeColor = color(0, 0, 0, 85);
