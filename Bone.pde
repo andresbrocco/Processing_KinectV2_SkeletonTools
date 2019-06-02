@@ -44,9 +44,9 @@ public class Bone{
  */
   public void update(float[] confidenceParameters){
     this.trackingState = this.parentJoint.trackingState*this.childJoint.trackingState;
-    this.estimateLength(confidenceParameters[0]/10); // the length of the bones should not be too sensitive to new measurements.
+    this.updateLength(confidenceParameters[0]/10); // the length of the bones should not be too sensitive to new measurements.
     this.estimatedPosition = PVector.lerp(this.parentJoint.estimatedPosition, this.childJoint.estimatedPosition, 0.5);
-    this.estimateDirection(confidenceParameters[0]);
+    this.updateDirection(confidenceParameters[0]);
     this.relativeOrientation = calculateRelativeOrientation(this.parentJoint.estimatedOrientation, this.childJoint.estimatedOrientation);
     this.childJoint.update(confidenceParameters); // Continue Chained Update, calling next joint
   }
@@ -57,7 +57,7 @@ public class Bone{
  * Then it uses this step size to calculate the new estimatedLength using the previousEstimatedLength and the current measurement. 
  * @param alpha (basis confidence on new measurements)
  */
-  private void estimateLength(float alpha){
+  private void updateLength(float alpha){
     this.measuredLength = PVector.sub(this.parentJoint.measuredPosition, this.childJoint.measuredPosition).mag();
     float alphaAdjustedByTrackingState = adjustAlphaByTrackingState(alpha, this.trackingState);
     this.averageMeasuredLength = lerp(this.averageMeasuredLength, this.measuredLength, alphaAdjustedByTrackingState);
@@ -65,6 +65,26 @@ public class Bone{
     this.measuredLengthConfidence = howCloseToTheMean(this.measuredLength, this.averageMeasuredLength, this.measuredLengthStandardDeviation);
     float alphaAdjustedByTrackingStateAndConfidence = alphaAdjustedByTrackingState*this.measuredLengthConfidence;
     this.estimatedLength = lerp(this.estimatedLength, this.measuredLength, alphaAdjustedByTrackingStateAndConfidence);
+  }
+  
+/**
+ * Iterates one step on the estimation of the current direction.
+ * First, it judges if the new measurement is an outlier or not, by calculating how close to the mean it is.
+ * Then it uses this step size to calculate the new estimatedDirection using the previousEstimatedDirection and the current measurement. 
+ * It uses slerp extrapolation (step>1) to account for direction velocity.
+ * @param alpha basis confidence on new measurements 
+ */
+  public void updateDirection(float alpha){
+    this.measuredDirection = PVector.sub(this.childJoint.measuredPosition, this.parentJoint.measuredPosition).div(this.measuredLength);
+    float angleBetweenMeasuredDirectionAndEstimatedDirection = PVector.angleBetween(this.measuredDirection, this.currentEstimatedDirection);
+    float alphaAdjustedByTrackingState = this.adjustAlphaByTrackingState(alpha, this.trackingState);
+    this.averageAngleBetweenMeasuredDirectionAndEstimatedDirection = lerp(this.averageAngleBetweenMeasuredDirectionAndEstimatedDirection, angleBetweenMeasuredDirectionAndEstimatedDirection, alphaAdjustedByTrackingState);
+    this.angleBetweenMeasuredDirectionAndEstimatedDirectionStandardDeviation = lerp(this.angleBetweenMeasuredDirectionAndEstimatedDirectionStandardDeviation, abs(angleBetweenMeasuredDirectionAndEstimatedDirection-this.averageAngleBetweenMeasuredDirectionAndEstimatedDirection), alphaAdjustedByTrackingState);
+    float measuredDirectionConfidence = howCloseToTheMean(angleBetweenMeasuredDirectionAndEstimatedDirection, this.averageAngleBetweenMeasuredDirectionAndEstimatedDirection, this.angleBetweenMeasuredDirectionAndEstimatedDirectionStandardDeviation);
+    float alphaAdjustedByTrackingStateAndConfidence = alphaAdjustedByTrackingState*measuredDirectionConfidence;
+    PVector auxiliar = slerp(slerp(this.previousEstimatedDirection, this.currentEstimatedDirection, 1+this.skeleton.dampingFactor*this.skeleton.scene.currentDeltaT/this.skeleton.scene.previousDeltaT), this.measuredDirection, alphaAdjustedByTrackingStateAndConfidence);
+    this.previousEstimatedDirection = this.currentEstimatedDirection;
+    this.currentEstimatedDirection = auxiliar;
   }
   
 /**
@@ -83,35 +103,15 @@ public class Bone{
       alphaAdjustedByTrackingState = alpha;
     }
     else if(trackingState == 2){ // If one tracked and one inferred
-      alphaAdjustedByTrackingState = alpha/2;
+      alphaAdjustedByTrackingState = alpha/3;
     }
     else if(trackingState == 1){ // If both inferred
-      alphaAdjustedByTrackingState = alpha/4;
+      alphaAdjustedByTrackingState = alpha/9;
     }
     else { // if(trackingState == 0)  // If at least one is not tracked
       alphaAdjustedByTrackingState = 0;
     }
     return alphaAdjustedByTrackingState;
-  }
-  
-/**
- * Iterates one step on the estimation of the current direction.
- * First, it judges if the new measurement is an outlier or not, by calculating how close to the mean it is.
- * Then it uses this step size to calculate the new estimatedDirection using the previousEstimatedDirection and the current measurement. 
- * It uses slerp extrapolation (step>1) to account for direction velocity.
- * @param alpha basis confidence on new measurements 
- */
-  public void estimateDirection(float alpha){
-    this.measuredDirection = PVector.sub(this.childJoint.measuredPosition, this.parentJoint.measuredPosition).div(this.measuredLength);
-    float angleBetweenMeasuredDirectionAndEstimatedDirection = PVector.angleBetween(this.measuredDirection, this.currentEstimatedDirection);
-    float alphaAdjustedByTrackingState = this.adjustAlphaByTrackingState(alpha, this.trackingState);
-    this.averageAngleBetweenMeasuredDirectionAndEstimatedDirection = lerp(this.averageAngleBetweenMeasuredDirectionAndEstimatedDirection, angleBetweenMeasuredDirectionAndEstimatedDirection, alphaAdjustedByTrackingState);
-    this.angleBetweenMeasuredDirectionAndEstimatedDirectionStandardDeviation = lerp(this.angleBetweenMeasuredDirectionAndEstimatedDirectionStandardDeviation, abs(angleBetweenMeasuredDirectionAndEstimatedDirection-this.averageAngleBetweenMeasuredDirectionAndEstimatedDirection), alphaAdjustedByTrackingState);
-    float measuredDirectionConfidence = howCloseToTheMean(angleBetweenMeasuredDirectionAndEstimatedDirection, this.averageAngleBetweenMeasuredDirectionAndEstimatedDirection, this.angleBetweenMeasuredDirectionAndEstimatedDirectionStandardDeviation);
-    float alphaAdjustedByTrackingStateAndConfidence = alphaAdjustedByTrackingState*measuredDirectionConfidence;
-    PVector auxiliar = slerp(slerp(this.previousEstimatedDirection, this.currentEstimatedDirection, 1+this.skeleton.dampingFactor*this.skeleton.scene.currentDeltaT/this.skeleton.scene.previousDeltaT), this.measuredDirection, alphaAdjustedByTrackingStateAndConfidence);
-    this.previousEstimatedDirection = this.currentEstimatedDirection;
-    this.currentEstimatedDirection = auxiliar;
   }
   
 /**

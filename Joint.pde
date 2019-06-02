@@ -16,8 +16,8 @@ public class Joint{
   private PVector estimatedVelocity;
   private PVector estimatedAcceleration;
   private Quaternion measuredOrientation;
-  private float averageAngleBetweenMeasuredOrientationAndEstimatedOrientation; // theta
-  private float angleBetweenMeasuredOrientationAndEstimatedOrientationStandardDeviation; // std of theta: angle between measuredOrientation and estimatedOrientation. 
+  private float averageAngleBetweenMeasuredOrientationAndPredictedCurrentOrientation; // theta
+  private float angleBetweenMeasuredOrientationAndPredictedCurrentOrientationStandardDeviation; // std of theta: angle between measuredOrientation and estimatedOrientation. 
   private Quaternion estimatedOrientation;
   private Quaternion previousEstimatedOrientation;
   private PVector estimatedDirectionX;
@@ -40,8 +40,8 @@ public class Joint{
     this.estimatedVelocity = new PVector(0,0,0);
     this.estimatedOrientation = this.measuredOrientation;
     this.previousEstimatedOrientation = this.estimatedOrientation;
-    this.averageAngleBetweenMeasuredOrientationAndEstimatedOrientation = 1; // in radians. Pure guess! 
-    this.angleBetweenMeasuredOrientationAndEstimatedOrientationStandardDeviation = 1; // em radianos. Pure guess!
+    this.averageAngleBetweenMeasuredOrientationAndPredictedCurrentOrientation = 1; // in radians. Pure guess! 
+    this.angleBetweenMeasuredOrientationAndPredictedCurrentOrientationStandardDeviation = 1; // in radians. Pure guess!
   }
   
   public void addChildBone(Bone childBone){
@@ -88,31 +88,22 @@ public class Joint{
   }
   
 /**
- * Iterates one step on the estimation of the current orientation.
- * First, it judges if the new measurement is an outlier or not, by calculating how close to the mean it is.
- * Then it uses this step size to calculate the new estimatedOrientation using the previousEstimatedOrientation and the current measurement. 
- * It uses quaternion extrapolation (qSlerp with step>1) to account for orientation velocity.
- * @param confidenceParameters (alpha, beta, gamma).
- */
-  private void updateOrientation(float[] confidenceParameters){
-    float measuredAngleBetweenMeasuredOrientationAndEstimatedOrientation = angleBetweenQuaternions(this.measuredOrientation, this.estimatedOrientation);
-    this.averageAngleBetweenMeasuredOrientationAndEstimatedOrientation = lerp(this.averageAngleBetweenMeasuredOrientationAndEstimatedOrientation, measuredAngleBetweenMeasuredOrientationAndEstimatedOrientation, confidenceParameters[0]);
-    this.angleBetweenMeasuredOrientationAndEstimatedOrientationStandardDeviation = lerp(this.angleBetweenMeasuredOrientationAndEstimatedOrientationStandardDeviation, abs(measuredAngleBetweenMeasuredOrientationAndEstimatedOrientation-this.averageAngleBetweenMeasuredOrientationAndEstimatedOrientation), confidenceParameters[0]);
-    float orientationStep = howCloseToTheMean(measuredAngleBetweenMeasuredOrientationAndEstimatedOrientation, this.averageAngleBetweenMeasuredOrientationAndEstimatedOrientation, this.angleBetweenMeasuredOrientationAndEstimatedOrientationStandardDeviation); 
-    Quaternion predictedCurrentOrientation = qSlerp(this.previousEstimatedOrientation, this.estimatedOrientation, 1 + this.skeleton.dampingFactor*this.skeleton.scene.currentDeltaT/this.skeleton.scene.previousDeltaT);
-    Quaternion newEstimatedOrientation = qSlerp(predictedCurrentOrientation, this.measuredOrientation, orientationStep*confidenceParameters[0]);
-    this.previousEstimatedOrientation = this.estimatedOrientation;
-    this.estimatedOrientation = newEstimatedOrientation;
-  }
-  
-/**
  * Iterates one step on the estimation of the current position.
  * First, it judges if the new measurement is an outlier or not, by calculating how close to the mean it is.
  * Then it uses this step size to calculate the new estimatedPosition using the previousEstimatedPosition, velocity and the current measurement. 
  * @param confidenceParameters (alpha, beta, gamma).
  */
   private void updatePosition(float[] confidenceParameters){
-    float distanceBetweenMeasuredPositionAndEstimatedPosition = PVector.sub(this.measuredPosition, this.estimatedPosition).mag();
+    PVector newEstimatedPosition;
+    if(jointId == 1){ // SpineMid
+      newEstimatedPosition = PVector.lerp(PVector.add(this.estimatedPosition, PVector.mult(this.estimatedVelocity, this.skeleton.dampingFactor*this.skeleton.scene.currentDeltaT)), this.measuredPosition, confidenceParameters[0]);
+    } 
+    else{ // Common Joints
+      newEstimatedPosition = PVector.add(this.estimatedPosition, PVector.mult(this.estimatedVelocity, this.skeleton.dampingFactor*this.skeleton.scene.currentDeltaT)).mult(confidenceParameters[1])
+                                            .add(PVector.add(this.parentJoint.estimatedPosition, PVector.mult(this.parentBone.currentEstimatedDirection, this.parentBone.estimatedLength)).mult(confidenceParameters[2]))
+                                            .add(PVector.mult(this.measuredPosition, confidenceParameters[0]));
+    }
+    float distanceBetweenMeasuredPositionAndEstimatedPosition = PVector.sub(this.measuredPosition, newEstimatedPosition).mag();
     this.averageDistanceBetweenMeasuredPositionAndEstimatedPosition = lerp(this.averageDistanceBetweenMeasuredPositionAndEstimatedPosition, distanceBetweenMeasuredPositionAndEstimatedPosition, confidenceParameters[0]);
     this.distanceBetweenMeasuredPositionAndEstimatedPositionStandardDeviation = lerp(this.distanceBetweenMeasuredPositionAndEstimatedPositionStandardDeviation, abs(distanceBetweenMeasuredPositionAndEstimatedPosition-this.averageDistanceBetweenMeasuredPositionAndEstimatedPosition), confidenceParameters[0]);
     float measuredPositionConfidence = howCloseToTheMean(distanceBetweenMeasuredPositionAndEstimatedPosition, this.averageDistanceBetweenMeasuredPositionAndEstimatedPosition, this.distanceBetweenMeasuredPositionAndEstimatedPositionStandardDeviation); 
@@ -122,7 +113,6 @@ public class Joint{
       adjustedConfidenceParameters = adjustConfidenceParametersByAlphaMultiplier(adjustedConfidenceParameters, this.parentBone.measuredLengthConfidence);
     }
     
-    PVector newEstimatedPosition;
     if(jointId == 1){ // SpineMid
       newEstimatedPosition = PVector.lerp(PVector.add(this.estimatedPosition, PVector.mult(this.estimatedVelocity, this.skeleton.dampingFactor*this.skeleton.scene.currentDeltaT)), this.measuredPosition, adjustedConfidenceParameters[0]);
     } 
@@ -143,9 +133,27 @@ public class Joint{
   }
   
 /**
+ * Iterates one step on the estimation of the current orientation.
+ * First, it judges if the new measurement is an outlier or not, by calculating how close to the mean it is.
+ * Then it uses this step size to calculate the new estimatedOrientation using the previousEstimatedOrientation and the current measurement. 
+ * It uses quaternion extrapolation (qSlerp with step>1) to account for orientation velocity.
+ * @param confidenceParameters (alpha, beta, gamma).
+ */
+  private void updateOrientation(float[] confidenceParameters){
+    Quaternion predictedCurrentOrientation = qSlerp(this.previousEstimatedOrientation, this.estimatedOrientation, 1 + this.skeleton.dampingFactor*this.skeleton.scene.currentDeltaT/this.skeleton.scene.previousDeltaT);
+    float measuredAngleBetweenMeasuredOrientationAndPredictedCurrentOrientation = angleBetweenQuaternions(this.measuredOrientation, predictedCurrentOrientation);
+    this.averageAngleBetweenMeasuredOrientationAndPredictedCurrentOrientation = lerp(this.averageAngleBetweenMeasuredOrientationAndPredictedCurrentOrientation, measuredAngleBetweenMeasuredOrientationAndPredictedCurrentOrientation, confidenceParameters[0]);
+    this.angleBetweenMeasuredOrientationAndPredictedCurrentOrientationStandardDeviation = lerp(this.angleBetweenMeasuredOrientationAndPredictedCurrentOrientationStandardDeviation, abs(measuredAngleBetweenMeasuredOrientationAndPredictedCurrentOrientation-this.averageAngleBetweenMeasuredOrientationAndPredictedCurrentOrientation), confidenceParameters[0]);
+    float orientationStep = howCloseToTheMean(measuredAngleBetweenMeasuredOrientationAndPredictedCurrentOrientation, this.averageAngleBetweenMeasuredOrientationAndPredictedCurrentOrientation, this.angleBetweenMeasuredOrientationAndPredictedCurrentOrientationStandardDeviation); 
+    Quaternion newEstimatedOrientation = qSlerp(predictedCurrentOrientation, this.measuredOrientation, orientationStep*confidenceParameters[0]);
+    this.previousEstimatedOrientation = this.estimatedOrientation;
+    this.estimatedOrientation = newEstimatedOrientation;
+  }
+  
+/**
  * Adjust the confidence of the new measurements (alpha) of the joint based on its trackingState received from Kinect.
- * If inferred, confidence = confidence/2. 
- * If not tracked, confidence = confidence/4.
+ * If inferred, confidence = confidence/3. 
+ * If not tracked, confidence = confidence/9.
  * Then it proportionally redistributes that confidence removed from alpha to beta and gamma.
  * @param confidenceParameters array of: alpha, beta, gamma.
  * @param trackingState received from kinect.
@@ -157,10 +165,10 @@ public class Joint{
       alphaAdjusted = confidenceParameters[0];
     }
     else if(trackingState == 1){ // If joint is inferred
-      alphaAdjusted = confidenceParameters[0]/2;
+      alphaAdjusted = confidenceParameters[0]/3;
     }
     else{ //(trackingState == 0) // If joint is not tracked
-      alphaAdjusted = confidenceParameters[0]/4;
+      alphaAdjusted = confidenceParameters[0]/9;
     }
     float betaAdjusted = confidenceParameters[1] + (confidenceParameters[0]-alphaAdjusted)*confidenceParameters[1]/(confidenceParameters[1]+confidenceParameters[2]);
     float gammaAdjusted = confidenceParameters[2] + (confidenceParameters[0]-alphaAdjusted)*confidenceParameters[2]/(confidenceParameters[1]+confidenceParameters[2]);
