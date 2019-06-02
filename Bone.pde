@@ -147,6 +147,7 @@ public class Bone{
   
 /**
  * Draw a line connecting child joint to parent joint.
+ * @param drawMeasured boolean to enable drawing the raw data received from kinect.
  */
   public void drawBone(boolean drawMeasured){
     stroke(this.skeleton.colorEstimated); fill(this.skeleton.colorEstimated);
