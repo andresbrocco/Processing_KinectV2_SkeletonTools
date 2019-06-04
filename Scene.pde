@@ -1,7 +1,6 @@
 import KinectPV2.*;
 
 KinectPV2 kinect = new KinectPV2(this);
-
   
 /**
  * The scene contains all the environment relative to the kinect, from the floor to the active skeletons.
@@ -14,6 +13,7 @@ public class Scene{
   private float cameraTransZ = -60;
   private float cameraRotX = -3.5;
   private float cameraRotY = -0.6; 
+  private float cameraRotZ = 0; 
   private color roomColor = color(0, 0, 0, 150);
   private color backgroundColor = color(128);
   private HashMap<Integer, Skeleton> activeSkeletons = new HashMap<Integer, Skeleton>();
@@ -99,12 +99,16 @@ public class Scene{
     camera();
     translate(this.cameraTransX, this.cameraTransY, this.cameraTransZ);
     /* Testing Steering Wheel rotating the scene:*/
-    /*for (Skeleton skeleton:this.activeSkeletons.values()) {
-      this.cameraRotX = this.cameraRotX + skeleton.features.steeringWheelPitch*skeleton.features.steeringWheelPitchSize/10;
-      this.cameraRotY = this.cameraRotY + skeleton.features.steeringWheelYaw*skeleton.features.steeringWheelYawSize/10;
-    }*/
+    
+    for (Skeleton skeleton:this.activeSkeletons.values()) {
+      this.cameraRotX = this.cameraRotX + skeleton.features.steeringWheel.pitchStep;
+      this.cameraRotY = this.cameraRotY + skeleton.features.steeringWheel.yawStep;
+      this.cameraRotZ = this.cameraRotZ + skeleton.features.steeringWheel.rollStep;
+    }
+    
     rotateX(this.cameraRotX);
     rotateY(this.cameraRotY);
+    //rotateZ(this.cameraRotZ);
     endCamera();
   }
   

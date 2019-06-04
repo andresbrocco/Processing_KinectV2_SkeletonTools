@@ -129,7 +129,7 @@ public class Skeleton{
       if(this.measuredHandRadius[h] == -1){ // if hand is not tracked.
         break;
       } else{
-        this.estimatedHandRadius[h] = lerp(this.estimatedHandRadius[h], this.measuredHandRadius[h], alpha);
+        this.estimatedHandRadius[h] = lerp(this.estimatedHandRadius[h], this.measuredHandRadius[h], alpha/4);
       }
     }
   }
@@ -179,22 +179,26 @@ public class Skeleton{
     // testing relative position to the floor coordinate system:
     //if(this.scene.floor.isCalibrated) this.testingRelativePosition();
     // Testing Steering Wheel:
-    //this.drawSteeringWheel();
+    this.drawSteeringWheel();
   }
   
 /**
  * For testing only, shall be deprecated
  */
-  private void drawSteeringWheel(){ // For testing
-    PVector vertex1 = PVector.mult(new PVector(cos(this.features.steeringWheelYaw), 0, sin(this.features.steeringWheelYaw)), 100*this.features.steeringWheelYawSize);
-    PVector vertex2 = PVector.mult(new PVector(-cos(this.features.steeringWheelYaw), 0, -sin(this.features.steeringWheelYaw)), 100*this.features.steeringWheelYawSize);
-    PVector vertex3 = PVector.mult(new PVector(0, cos(this.features.steeringWheelPitch), sin(this.features.steeringWheelPitch)), 100*this.features.steeringWheelPitchSize);
-    PVector vertex4 = PVector.mult(new PVector(0, -cos(this.features.steeringWheelPitch), -sin(this.features.steeringWheelPitch)), 100*this.features.steeringWheelPitchSize);
+  private void drawSteeringWheel(){
+    PVector vertex1 = PVector.mult(new PVector(cos(this.features.steeringWheel.yawAngle), 0, sin(this.features.steeringWheel.yawAngle)), 100*this.features.steeringWheel.yawSize);
+    PVector vertex2 = PVector.mult(new PVector(-cos(this.features.steeringWheel.yawAngle), 0, -sin(this.features.steeringWheel.yawAngle)), 100*this.features.steeringWheel.yawSize);
+    PVector vertex3 = PVector.mult(new PVector(0, cos(this.features.steeringWheel.pitchAngle), sin(this.features.steeringWheel.pitchAngle)), 100*this.features.steeringWheel.pitchSize);
+    PVector vertex4 = PVector.mult(new PVector(0, -cos(this.features.steeringWheel.pitchAngle), -sin(this.features.steeringWheel.pitchAngle)), 100*this.features.steeringWheel.pitchSize);
+    PVector vertex5 = PVector.mult(new PVector(cos(this.features.steeringWheel.rollAngle), sin(this.features.steeringWheel.rollAngle), 0), 100*this.features.steeringWheel.rollSize);
+    PVector vertex6 = PVector.mult(new PVector(-cos(this.features.steeringWheel.rollAngle), -sin(this.features.steeringWheel.rollAngle), 0), 100*this.features.steeringWheel.rollSize);
     strokeWeight(5);
     stroke(color(128, 67, 23));
     line(vertex1.x, vertex1.y, vertex1.z, vertex2.x, vertex2.y, vertex2.z);
     stroke(color(67, 23, 128));
     line(vertex3.x, vertex3.y, vertex3.z, vertex4.x, vertex4.y, vertex4.z);
+    stroke(color(67, 128, 23));
+    line(vertex5.x, vertex5.y, vertex5.z, vertex6.x, vertex6.y, vertex6.z);
   }
   
 /**
