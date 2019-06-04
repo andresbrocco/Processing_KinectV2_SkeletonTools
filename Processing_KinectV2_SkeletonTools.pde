@@ -4,9 +4,9 @@
 boolean drawSkeletonTool = true;
 Scene scene = new Scene();
 
-int pdPort = 3000;
+int pdPort = 12000;
 int myPort = 3001;
-Communication communication = new Communication("127.0.0.1", pdPort, myPort);
+Communication communication = new Communication("192.168.15.16", pdPort, myPort);
 
 void setup()
 {

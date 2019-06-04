@@ -95,17 +95,18 @@ public class Joint{
  */
   private void updatePosition(float[] confidenceParameters){
     PVector newEstimatedPosition;
+    float[] adjustedConfidenceParametersForresponseTradeoff = adjustConfidenceParametersByResponseTradeoff(confidenceParameters);
     if(jointId == 1){ // SpineMid
-      newEstimatedPosition = PVector.lerp(PVector.add(this.estimatedPosition, PVector.mult(this.estimatedVelocity, this.skeleton.dampingFactor*this.skeleton.scene.currentDeltaT)), this.measuredPosition, confidenceParameters[0]);
+      newEstimatedPosition = PVector.add(this.estimatedPosition, PVector.mult(this.estimatedVelocity, this.skeleton.scene.currentDeltaT));
     } 
     else{ // Common Joints
-      newEstimatedPosition = PVector.add(this.estimatedPosition, PVector.mult(this.estimatedVelocity, this.skeleton.dampingFactor*this.skeleton.scene.currentDeltaT)).mult(confidenceParameters[1])
-                                            .add(PVector.add(this.parentJoint.estimatedPosition, PVector.mult(this.parentBone.currentEstimatedDirection, this.parentBone.estimatedLength)).mult(confidenceParameters[2]))
-                                            .add(PVector.mult(this.measuredPosition, confidenceParameters[0]));
+      newEstimatedPosition = PVector.add(this.estimatedPosition, PVector.mult(this.estimatedVelocity, this.skeleton.dampingFactor*this.skeleton.scene.currentDeltaT)).mult(adjustedConfidenceParametersForresponseTradeoff[1])
+                                            .add(PVector.add(this.parentJoint.estimatedPosition, PVector.mult(this.parentBone.currentEstimatedDirection, this.parentBone.estimatedLength)).mult(adjustedConfidenceParametersForresponseTradeoff[2]))
+                                            .add(PVector.mult(this.measuredPosition, adjustedConfidenceParametersForresponseTradeoff[0]));
     }
     float distanceBetweenMeasuredPositionAndEstimatedPosition = PVector.sub(this.measuredPosition, newEstimatedPosition).mag();
-    this.averageDistanceBetweenMeasuredPositionAndEstimatedPosition = lerp(this.averageDistanceBetweenMeasuredPositionAndEstimatedPosition, distanceBetweenMeasuredPositionAndEstimatedPosition, confidenceParameters[0]);
-    this.distanceBetweenMeasuredPositionAndEstimatedPositionStandardDeviation = lerp(this.distanceBetweenMeasuredPositionAndEstimatedPositionStandardDeviation, abs(distanceBetweenMeasuredPositionAndEstimatedPosition-this.averageDistanceBetweenMeasuredPositionAndEstimatedPosition), confidenceParameters[0]);
+    this.averageDistanceBetweenMeasuredPositionAndEstimatedPosition = lerp(this.averageDistanceBetweenMeasuredPositionAndEstimatedPosition, distanceBetweenMeasuredPositionAndEstimatedPosition, pow(confidenceParameters[0], this.skeleton.responseTradeoff));
+    this.distanceBetweenMeasuredPositionAndEstimatedPositionStandardDeviation = lerp(this.distanceBetweenMeasuredPositionAndEstimatedPositionStandardDeviation, abs(distanceBetweenMeasuredPositionAndEstimatedPosition-this.averageDistanceBetweenMeasuredPositionAndEstimatedPosition), pow(confidenceParameters[0], this.skeleton.responseTradeoff));
     float measuredPositionConfidence = howCloseToTheMean(distanceBetweenMeasuredPositionAndEstimatedPosition, this.averageDistanceBetweenMeasuredPositionAndEstimatedPosition, this.distanceBetweenMeasuredPositionAndEstimatedPositionStandardDeviation); 
     
     float[] adjustedConfidenceParameters = adjustConfidenceParametersByAlphaMultiplier(confidenceParameters, measuredPositionConfidence);
@@ -142,8 +143,8 @@ public class Joint{
   private void updateOrientation(float[] confidenceParameters){
     Quaternion predictedCurrentOrientation = qSlerp(this.previousEstimatedOrientation, this.estimatedOrientation, 1 + this.skeleton.dampingFactor*this.skeleton.scene.currentDeltaT/this.skeleton.scene.previousDeltaT);
     float measuredAngleBetweenMeasuredOrientationAndPredictedCurrentOrientation = angleBetweenQuaternions(this.measuredOrientation, predictedCurrentOrientation);
-    this.averageAngleBetweenMeasuredOrientationAndPredictedCurrentOrientation = lerp(this.averageAngleBetweenMeasuredOrientationAndPredictedCurrentOrientation, measuredAngleBetweenMeasuredOrientationAndPredictedCurrentOrientation, confidenceParameters[0]);
-    this.angleBetweenMeasuredOrientationAndPredictedCurrentOrientationStandardDeviation = lerp(this.angleBetweenMeasuredOrientationAndPredictedCurrentOrientationStandardDeviation, abs(measuredAngleBetweenMeasuredOrientationAndPredictedCurrentOrientation-this.averageAngleBetweenMeasuredOrientationAndPredictedCurrentOrientation), confidenceParameters[0]);
+    this.averageAngleBetweenMeasuredOrientationAndPredictedCurrentOrientation = lerp(this.averageAngleBetweenMeasuredOrientationAndPredictedCurrentOrientation, measuredAngleBetweenMeasuredOrientationAndPredictedCurrentOrientation, pow(confidenceParameters[0], this.skeleton.responseTradeoff));
+    this.angleBetweenMeasuredOrientationAndPredictedCurrentOrientationStandardDeviation = lerp(this.angleBetweenMeasuredOrientationAndPredictedCurrentOrientationStandardDeviation, abs(measuredAngleBetweenMeasuredOrientationAndPredictedCurrentOrientation-this.averageAngleBetweenMeasuredOrientationAndPredictedCurrentOrientation), pow(confidenceParameters[0], this.skeleton.responseTradeoff));
     float orientationStep = howCloseToTheMean(measuredAngleBetweenMeasuredOrientationAndPredictedCurrentOrientation, this.averageAngleBetweenMeasuredOrientationAndPredictedCurrentOrientation, this.angleBetweenMeasuredOrientationAndPredictedCurrentOrientationStandardDeviation); 
     Quaternion newEstimatedOrientation = qSlerp(predictedCurrentOrientation, this.measuredOrientation, orientationStep*confidenceParameters[0]);
     this.previousEstimatedOrientation = this.estimatedOrientation;
@@ -170,6 +171,20 @@ public class Joint{
     else{ //(trackingState == 0) // If joint is not tracked
       alphaAdjusted = confidenceParameters[0]/9;
     }
+    float betaAdjusted = confidenceParameters[1] + (confidenceParameters[0]-alphaAdjusted)*confidenceParameters[1]/(confidenceParameters[1]+confidenceParameters[2]);
+    float gammaAdjusted = confidenceParameters[2] + (confidenceParameters[0]-alphaAdjusted)*confidenceParameters[2]/(confidenceParameters[1]+confidenceParameters[2]);
+    float[] adjustedConfidenceParameters = {alphaAdjusted, betaAdjusted, gammaAdjusted};
+    return adjustedConfidenceParameters;
+  }
+  
+/**
+ * Remove confidence of new measurements to get only the estimated position.
+ * Then it proportionally redistributes that confidence removed from alpha to beta and gamma.
+ * @param confidenceParameters array of: alpha, beta, gamma.
+ * @return adjustedConfidenceParameters (alpha, beta, gamma).
+ */
+  private float[] adjustConfidenceParametersByResponseTradeoff(float[] confidenceParameters){
+    float alphaAdjusted = 0;
     float betaAdjusted = confidenceParameters[1] + (confidenceParameters[0]-alphaAdjusted)*confidenceParameters[1]/(confidenceParameters[1]+confidenceParameters[2]);
     float gammaAdjusted = confidenceParameters[2] + (confidenceParameters[0]-alphaAdjusted)*confidenceParameters[2]/(confidenceParameters[1]+confidenceParameters[2]);
     float[] adjustedConfidenceParameters = {alphaAdjusted, betaAdjusted, gammaAdjusted};

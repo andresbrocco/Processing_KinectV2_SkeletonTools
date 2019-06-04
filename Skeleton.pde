@@ -8,6 +8,7 @@ public class Skeleton{
   private color colorEstimated;
   private color colorMeasured;
   private int appearedLastInFrame = 0; // counter to keep track if skeleton is dead or not.
+  private float responseTradeoff = 0.2; // Tradeoff between speed and smoothness: close to 0 gives faster responses but more noise. Larger values give lazy skeleton. 
   private float alpha = 0.33; // alpha = confidence of new measurement
   private float beta = 0.33; // beta = confidence of estimated position based on previous position and velocity
   private float gamma = 1 - this.alpha - this.beta; // gamma = confidence of estimated position based on parentBone orientation and length

@@ -1,6 +1,5 @@
 import oscP5.*;
 import netP5.*;
-import java.util.Iterator;
   
 public class Communication{
   private OscP5 oscP5;
@@ -18,8 +17,18 @@ public class Communication{
         this.sendKinectSkeleton(skeleton);
         this.sendGrainParameters(skeleton);
         this.sendVideoParameter(skeleton);
+        this.sendSteeringWheel(skeleton);
       }
     }
+  }
+  
+  private void sendSteeringWheel(Skeleton skeleton){
+    OscMessage messageToVideoSphere = new OscMessage("/steeringWheelRollStep:");
+    messageToVideoSphere.add(skeleton.features.steeringWheel.rollStep);
+    this.oscP5.send(messageToVideoSphere, pdAddress);
+    messageToVideoSphere = new OscMessage("/steeringWheelPitchStep:");
+    messageToVideoSphere.add(skeleton.features.steeringWheel.pitchStep);
+    this.oscP5.send(messageToVideoSphere, pdAddress);
   }
   
   private void sendKinectSkeleton(Skeleton skeleton){ 
