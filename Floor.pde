@@ -32,6 +32,9 @@ class Floor{
   private PVector boxFacePointYP; // Y+
   private PVector boxFacePointZN; // Z-
   private PVector boxFacePointZP; // Z+
+  private PVector pppBoxVertex;
+  private PVector nnnBoxVertex;
+  private PVector dimensions;
   
   public Floor(Scene scene){
     this.scene = scene;
@@ -157,32 +160,39 @@ class Floor{
  * Find the most extreme points in relation to the new coordinate system directions.
  */
   private void findBoxFacePoints(Matrix filledHistoryOfFeetPositions){
-    PVector positiveFarIndex = new PVector(-10,-10,-10); //gambiarra
-    PVector negativeFarIndex = new PVector(10,10,10); //gambiarra
+    this.pppBoxVertex = new PVector(-10,-10,-10); //gambiarra
+    this.nnnBoxVertex = new PVector(10,10,10); //gambiarra
     for(int row=0; row<filledHistoryOfFeetPositions.getRowDimension(); row++){
       PVector point = new PVector((float)filledHistoryOfFeetPositions.get(row, 0), (float)filledHistoryOfFeetPositions.get(row, 1), (float)filledHistoryOfFeetPositions.get(row, 2));
       float basisXProjection = PVector.dot(point, this.basisVectorX);
       float basisYProjection = PVector.dot(point, this.basisVectorY);
       float basisZProjection = PVector.dot(point, this.basisVectorZ);
-      if(basisXProjection > positiveFarIndex.x) {
-        positiveFarIndex.x = basisXProjection; this.boxFacePointXP = PVector.add(point, this.averageFeetPosition);
+      if(basisXProjection > this.pppBoxVertex.x) {
+        this.pppBoxVertex.x = basisXProjection; 
+        this.boxFacePointXP = PVector.add(point, this.averageFeetPosition);
       }
-      if(basisYProjection > positiveFarIndex.y) {
-        positiveFarIndex.y = basisYProjection; this.boxFacePointYP = PVector.add(point, this.averageFeetPosition);
+      if(basisYProjection > this.pppBoxVertex.y) {
+        this.pppBoxVertex.y = basisYProjection; 
+        this.boxFacePointYP = PVector.add(point, this.averageFeetPosition);
       }
-      if(basisZProjection > positiveFarIndex.z) {
-        positiveFarIndex.z = basisZProjection; this.boxFacePointZP = PVector.add(point, this.averageFeetPosition);
+      if(basisZProjection > this.pppBoxVertex.z) {
+        this.pppBoxVertex.z = basisZProjection; 
+        this.boxFacePointZP = PVector.add(point, this.averageFeetPosition);
       }
-      if(basisXProjection < negativeFarIndex.x) {
-        negativeFarIndex.x = basisXProjection; this.boxFacePointXN = PVector.add(point, this.averageFeetPosition);
+      if(basisXProjection < this.nnnBoxVertex.x) {
+        this.nnnBoxVertex.x = basisXProjection; 
+        this.boxFacePointXN = PVector.add(point, this.averageFeetPosition);
       }
-      if(basisYProjection < negativeFarIndex.y) {
-        negativeFarIndex.y = basisYProjection; this.boxFacePointYN = PVector.add(point, this.averageFeetPosition);
+      if(basisYProjection < this.nnnBoxVertex.y) {
+        this.nnnBoxVertex.y = basisYProjection; 
+        this.boxFacePointYN = PVector.add(point, this.averageFeetPosition);
       }
-      if(basisZProjection < negativeFarIndex.z) {
-        negativeFarIndex.z = basisZProjection; this.boxFacePointZN = PVector.add(point, this.averageFeetPosition);
+      if(basisZProjection < this.nnnBoxVertex.z) {
+        this.nnnBoxVertex.z = basisZProjection; 
+        this.boxFacePointZN = PVector.add(point, this.averageFeetPosition);
       }
     }
+    this.dimensions = PVector.sub(this.pppBoxVertex, this.nnnBoxVertex);
   }
   
 /**
