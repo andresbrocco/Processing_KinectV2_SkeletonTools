@@ -11,7 +11,7 @@ Communication communication = new Communication("192.168.15.16", pdPort, myPort)
 void setup()
 {
   frameRate(scene.frameRate_);
-  size(600, 600, P3D);
+  size(700, 450, P3D);
   scene.init();
 }
 

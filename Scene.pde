@@ -100,11 +100,11 @@ public class Scene{
     translate(this.cameraTransX, this.cameraTransY, this.cameraTransZ);
     /* Testing Steering Wheel rotating the scene:*/
     
-    for (Skeleton skeleton:this.activeSkeletons.values()) {
+    /*for (Skeleton skeleton:this.activeSkeletons.values()) {
       this.cameraRotX = this.cameraRotX + skeleton.features.steeringWheel.pitchStep;
       this.cameraRotY = this.cameraRotY + skeleton.features.steeringWheel.yawStep;
       this.cameraRotZ = this.cameraRotZ + skeleton.features.steeringWheel.rollStep;
-    }
+    }*/
     
     rotateX(this.cameraRotX);
     rotateY(this.cameraRotY);
