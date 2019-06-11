@@ -70,6 +70,6 @@ This repository contains Processing Classes and Methods to preprocess KinectV2 S
     </div>
     <div class="col-md-4" markdown="1">
     <!-- ![Alt Text](../img/folder/blah.jpg) -->
-    <img height="600px" class="center-block" src="../img/folder/blah.jpg">
+    text2
     </div>
   </div>
