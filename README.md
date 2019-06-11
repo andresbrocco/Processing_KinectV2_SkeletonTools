@@ -63,7 +63,3 @@ This repository contains Processing Classes and Methods to preprocess KinectV2 S
   - [x] Bone Relative Rotations - Roll, Pitch, Yaw. (Rotation from parent joint to child joint).
   - [x] Imaginary Steering Wheel
   - [ ] add list of desired features
-
-coluna 1 | coluna 2
----------|---------
-coluna 1 | coluna 2
