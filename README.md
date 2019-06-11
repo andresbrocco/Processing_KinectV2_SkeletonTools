@@ -64,7 +64,7 @@ This repository contains Processing Classes and Methods to preprocess KinectV2 S
   - [x] Imaginary Steering Wheel
   - [ ] add list of desired features
 
-  <table style="width:100%, border=0px">
+  <table style="width:100% border=0px">
    <tr>
      <th>Firstname</th>
      <th>Lastname</th>
