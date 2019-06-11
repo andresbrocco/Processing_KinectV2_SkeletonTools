@@ -64,7 +64,7 @@ This repository contains Processing Classes and Methods to preprocess KinectV2 S
   - [x] Imaginary Steering Wheel
   - [ ] add list of desired features
 
-  <table style="width:100%">
+  <table style="width:100%" border="0px">
    <tr>
      <th>Firstname</th>
      <th>Lastname</th>
@@ -75,9 +75,4 @@ This repository contains Processing Classes and Methods to preprocess KinectV2 S
      <td>Smith</td>
      <td>50</td>
    </tr>
-   <tr>
-     <td>Eve</td>
-     <td>Jackson</td>
-     <td>94</td>
-   </tr>
- </table> 
+ </table>
