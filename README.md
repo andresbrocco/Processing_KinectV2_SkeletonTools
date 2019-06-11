@@ -3,7 +3,7 @@
 This repository contains Processing Classes and Methods to preprocess KinectV2 Skeleton Data.
 
 <p align="center">
-  <img src="Images/featured.png" width="350" title="Snaphot of the library in action">
+  <img src="Images/featured.png" width="600" title="Snaphot of the library in action">
 </p>
 
 ## Dependencies:
@@ -41,7 +41,7 @@ This repository contains Processing Classes and Methods to preprocess KinectV2 S
   Getting in more detail: The human body Center of Mass is right on the "spineMid" joint, so the smoothing altorithm starts updating from this joint. It predicts the currentEstimatedPosition based on the previousEstimatedPosition, estimatedVelocity and currentMeasurement. Next step is to update its adjacent bones: estimate the boneLength and its orientation based on the previousEstimatedOrientation, angular velocity and current measurement. With these information, the next joint (at the other end of the bone) can be estimated. Each joints calls the next bone to be updated and each bone calls the next joint to be updated. This cycle repeats until the skeleton is fully estimated.
 
   <p align="center">
-    <img src="Images/skeleton_joints_and_hands.png" width="350" title="Skeleton Joints and hands">
+    <img src="Images/skeleton_joints_and_hands.png" width="400" title="Skeleton Joints and hands">
   </p>
 
   A snapshot of the result is above, where each joint coordinate system is shown. The informations about the hand states are converted to a single float value representing "how much the hand is opened", in percentage (0 to 1). This information is drawn as a sphere around each hand.
@@ -52,14 +52,14 @@ This repository contains Processing Classes and Methods to preprocess KinectV2 S
   Stand up in front of the sensor until your skeleton is tracked. Clap your hands to get a snapshot of your feet positions. Walk to a new spot, and clap your hands again. Repeat until there is enough data points (pink dots in the image below).
 
   <p align="center">
-    <img src="Images/floor_calibration.png" width="350" title="Snaphot of the floor calibration process">
+    <img src="Images/floor_calibration.png" width="400" title="Snaphot of the floor calibration process">
   </p>
 
   A transparent box encompasses all data points, therefore representing the room limits. The estimated floor plane minimizes the sum of distances to the data points. This was acheived applying a Singular Value Decomposition to find the Principal Components of the 3D coordinates. Finally, the floor coordinate system is placed at the room center.
 
 ### Body Features:
-  - [x] Positions and orientations relative to the Kinect Coordinate System
-  - [x] Positions and orientations relative to the floor Coordinate System
+  - [x] Position, velocity, acceleration and orientation of each joint relative to the Kinect Coordinate System
+  - [x] Position, velocity, acceleration and orientation of each joint relative to the Floor Coordinate System
   - [x] Bone Relative Rotations - Roll, Pitch, Yaw. (Rotation from parent joint to child joint).
   - [x] Imaginary Steering Wheel
-  - [ ] add list of desired body features
+  - [ ] add list of desired features
