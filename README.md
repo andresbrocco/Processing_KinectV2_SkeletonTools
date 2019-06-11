@@ -64,12 +64,20 @@ This repository contains Processing Classes and Methods to preprocess KinectV2 S
   - [x] Imaginary Steering Wheel
   - [ ] add list of desired features
 
-  <div class="row">
-    <div class="col-md-8" markdown="1">
-    Some text.
-    </div>
-    <div class="col-md-4" markdown="1">
-    <!-- ![Alt Text](../img/folder/blah.jpg) -->
-    text2
-    </div>
-  </div>
+<table style="width:100%;border:0px solid black">
+   <tr>
+     <th>Firstname</th>
+     <th>Lastname</th>
+     <th>Age</th>
+   </tr>
+   <tr>
+     <td>Jill</td>
+     <td>Smith</td>
+     <td>50</td>
+   </tr>
+   <tr>
+     <td>Eve</td>
+     <td>Jackson</td>
+     <td>94</td>
+   </tr>
+ </table>
