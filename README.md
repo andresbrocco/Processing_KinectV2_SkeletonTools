@@ -65,3 +65,5 @@ This repository contains Processing Classes and Methods to preprocess KinectV2 S
   - [ ] add list of desired features
 
 coluna 1 | coluna 2
+---------|---------
+coluna 1 | coluna 2
