@@ -76,3 +76,32 @@ This repository contains Processing Classes and Methods to preprocess KinectV2 S
      <td>50</td>
    </tr>
  </table>
+
+ <style>
+  table {
+    border-collapse: collapse;
+  }
+  th, td {
+    border: 0px solid black;
+    padding: 10px;
+    text-align: left;
+  }
+</style>
+
+<table style="border:0px">
+  <tr>
+    <th>Table Header</th>
+    <th>Table Header</th>
+    <th>Table Header</th>
+  </tr>
+  <tr>
+    <td>Table cell</td>
+    <td>Table cell</td>
+    <td>Table cell</td>
+  </tr>
+  <tr>
+    <td>Table cell</td>
+    <td>Table cell</td>
+    <td>Table cell</td>
+  </tr>
+</table>
