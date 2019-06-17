@@ -11,7 +11,7 @@ Communication communication = new Communication("192.168.15.16", pdPort, myPort)
 void setup()
 {
   frameRate(scene.frameRate_);
-  size(700, 450, P3D);
+  size(650, 650, P3D);
   scene.init();
 }
 
@@ -27,7 +27,7 @@ void draw()
     scene.draw(); // measuredSkeletons, jointOrientation, boneRelativeOrientation, handRadius, handStates
   } else{
     // Your animation algorithm should be placed here
-    background(color(128));
+    background(color(0));
   }
   communication.sendScene(scene);
 }
