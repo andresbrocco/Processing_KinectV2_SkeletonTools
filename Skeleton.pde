@@ -1,4 +1,4 @@
-/** //<>// //<>// //<>// //<>//
+/** //<>//
  * A skeleton contains all the information related to a specific body. It also contains the algorithms to smooth its movement and draw itself on screen.
  */
 public class Skeleton{
@@ -52,6 +52,8 @@ public class Skeleton{
   public float shoulderTension = 0; // SHOULDER height relative to SPINESHOULDER
   public SteeringWheel steeringWheel = new SteeringWheel(this);
   public float distanceBetweenHands;
+  public Pollock leftHandPollock;
+  public Pollock rightHandPollock;
                       
   public Skeleton(KSkeleton kSkeleton, Scene scene){
     this.scene = scene;
@@ -76,6 +78,8 @@ public class Skeleton{
     for(int b=0; b<24; b++){
       this.joints[skeletonConnections[b][1]].addChildBone(this.bones[skeletonConnections[b][0]]);
     }
+    this.leftHandPollock = new Pollock(this, "left");
+    this.rightHandPollock = new Pollock(this, "right");
     this.appearedLastInFrame = frameCount;
   }
   
@@ -93,6 +97,8 @@ public class Skeleton{
       joints[j].receiveNewMeasurements(kJoints[j]);
     }
     this.smoothSkeleton();
+    this.leftHandPollock.update();
+    this.rightHandPollock.update();
     this.appearedLastInFrame = frameCount;
   }
   
@@ -180,6 +186,8 @@ public class Skeleton{
     if(drawHandStates){
       this.drawHandStates();
     }
+    this.leftHandPollock.draw();
+    this.rightHandPollock.draw();
     // Both below shall be deleted
     // testing relative position to the floor coordinate system:
     //if(this.scene.floor.isCalibrated) this.testingRelativePosition();
@@ -250,13 +258,13 @@ public class Skeleton{
       sphereDetail((int)(sphereRadius*2/3)+3);
       pushMatrix();
       if(h==0){ // left hand
-        translate(reScaleX(this.joints[HAND_LEFT].estimatedPosition.x),
-                  reScaleY(this.joints[HAND_LEFT].estimatedPosition.y),
-                  reScaleZ(this.joints[HAND_LEFT].estimatedPosition.z));
+        translate(reScaleX(this.joints[HAND_LEFT].estimatedPosition.x, "skeleton.drawHandRadius"),
+                  reScaleY(this.joints[HAND_LEFT].estimatedPosition.y, "skeleton.drawHandRadius"),
+                  reScaleZ(this.joints[HAND_LEFT].estimatedPosition.z, "skeleton.drawHandRadius"));
       } else{ // right hand
-        translate(reScaleX(this.joints[HAND_RIGHT].estimatedPosition.x),
-                  reScaleY(this.joints[HAND_RIGHT].estimatedPosition.y),
-                  reScaleZ(this.joints[HAND_RIGHT].estimatedPosition.z));
+        translate(reScaleX(this.joints[HAND_RIGHT].estimatedPosition.x, "skeleton.drawHandRadius"),
+                  reScaleY(this.joints[HAND_RIGHT].estimatedPosition.y, "skeleton.drawHandRadius"),
+                  reScaleZ(this.joints[HAND_RIGHT].estimatedPosition.z, "skeleton.drawHandRadius"));
       }
       sphere(sphereRadius);
       popMatrix();
@@ -291,13 +299,13 @@ public class Skeleton{
       pushMatrix();
       
       if(h==0){ // left hand
-        translate(reScaleX(this.joints[HAND_LEFT].estimatedPosition.x),
-                  reScaleY(this.joints[HAND_LEFT].estimatedPosition.y),
-                  reScaleZ(this.joints[HAND_LEFT].estimatedPosition.z));
+        translate(reScaleX(this.joints[HAND_LEFT].estimatedPosition.x, "skeleton.drawHandStates"),
+                  reScaleY(this.joints[HAND_LEFT].estimatedPosition.y, "skeleton.drawHandStates"),
+                  reScaleZ(this.joints[HAND_LEFT].estimatedPosition.z, "skeleton.drawHandStates"));
       } else{ // right hand
-        translate(reScaleX(this.joints[HAND_RIGHT].estimatedPosition.x),
-                  reScaleY(this.joints[HAND_RIGHT].estimatedPosition.y),
-                  reScaleZ(this.joints[HAND_RIGHT].estimatedPosition.z));
+        translate(reScaleX(this.joints[HAND_RIGHT].estimatedPosition.x, "skeleton.drawHandStates"),
+                  reScaleY(this.joints[HAND_RIGHT].estimatedPosition.y, "skeleton.drawHandStates"),
+                  reScaleZ(this.joints[HAND_RIGHT].estimatedPosition.z, "skeleton.drawHandStates"));
       }
       sphere(sphereRadius);
       popMatrix();

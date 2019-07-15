@@ -131,9 +131,9 @@ public class Bone{
   float size = 15;
     if(!this.childJoint.isEndJoint){
       pushMatrix();
-      translate(reScaleX(this.estimatedPosition.x),
-                reScaleY(this.estimatedPosition.y),
-                reScaleZ(this.estimatedPosition.z));
+      translate(reScaleX(this.estimatedPosition.x, "bone.drawRelativeOrientation"),
+                reScaleY(this.estimatedPosition.y, "bone.drawRelativeOrientation"),
+                reScaleZ(this.estimatedPosition.z, "bone.drawRelativeOrientation"));
       noStroke();
       fill(255, 0, 0, 128); 
       drawPie3D(this.parentJoint.estimatedDirectionX, this.childJoint.estimatedDirectionX, size);
@@ -152,20 +152,20 @@ public class Bone{
   public void drawBone(boolean drawMeasured){
     stroke(this.skeleton.colorEstimated); fill(this.skeleton.colorEstimated);
     strokeWeight(5);
-    line(reScaleX(this.parentJoint.estimatedPosition.x), 
-         reScaleY(this.parentJoint.estimatedPosition.y), 
-         reScaleZ(this.parentJoint.estimatedPosition.z), 
-         reScaleX(this.childJoint.estimatedPosition.x), 
-         reScaleY(this.childJoint.estimatedPosition.y), 
-         reScaleZ(this.childJoint.estimatedPosition.z));
+    line(reScaleX(this.parentJoint.estimatedPosition.x, "bone.drawBone"), 
+         reScaleY(this.parentJoint.estimatedPosition.y, "bone.drawBone"), 
+         reScaleZ(this.parentJoint.estimatedPosition.z, "bone.drawBone"), 
+         reScaleX(this.childJoint.estimatedPosition.x, "bone.drawBone"), 
+         reScaleY(this.childJoint.estimatedPosition.y, "bone.drawBone"), 
+         reScaleZ(this.childJoint.estimatedPosition.z, "bone.drawBone"));
     if(drawMeasured){
       stroke(this.skeleton.colorMeasured); fill(this.skeleton.colorMeasured);
-      line(reScaleX(this.parentJoint.measuredPosition.x), 
-           reScaleY(this.parentJoint.measuredPosition.y), 
-           reScaleZ(this.parentJoint.measuredPosition.z), 
-           reScaleX(this.childJoint.measuredPosition.x), 
-           reScaleY(this.childJoint.measuredPosition.y), 
-           reScaleZ(this.childJoint.measuredPosition.z));
+      line(reScaleX(this.parentJoint.measuredPosition.x, "bone.drawBone"), 
+           reScaleY(this.parentJoint.measuredPosition.y, "bone.drawBone"), 
+           reScaleZ(this.parentJoint.measuredPosition.z, "bone.drawBone"), 
+           reScaleX(this.childJoint.measuredPosition.x, "bone.drawBone"), 
+           reScaleY(this.childJoint.measuredPosition.y, "bone.drawBone"), 
+           reScaleZ(this.childJoint.measuredPosition.z, "bone.drawBone"));
     }
   }
 }

@@ -120,11 +120,11 @@ public class Scene{
     float size = 0.5; // meters
     strokeWeight(5);
     stroke(255, 0, 0);
-    line(0, 0, 0, reScaleX(size), 0, 0); // The Processing's coordinate system is inconsistent (X cross Y != Z)
+    line(0, 0, 0, reScaleX(size, "scene.drawKinectCoordinateSystem"), 0, 0); // The Processing's coordinate system is inconsistent (X cross Y != Z)
     stroke(0, 255, 0);
-    line(0, 0, 0, 0, reScaleY(size), 0);
+    line(0, 0, 0, 0, reScaleY(size, "scene.drawKinectCoordinateSystem"), 0);
     stroke(0, 0, 255);
-    line(0, 0, 0, 0, 0, reScaleZ(size));
+    line(0, 0, 0, 0, 0, reScaleZ(size, "scene.drawKinectCoordinateSystem"));
   }
   
 /**
@@ -139,8 +139,8 @@ public class Scene{
         float horizontalFoV = 71;
         float minimumDepth = 0.5; // meters
         float maximumDepth = 4; // meters
-        float minimumDepthInPixels = reScaleZ(minimumDepth);
-        float maximumDepthInPixels = reScaleZ(maximumDepth);
+        float minimumDepthInPixels = reScaleZ(minimumDepth, "scene.drawKinectFieldOfView");
+        float maximumDepthInPixels = reScaleZ(maximumDepth, "scene.drawKinectFieldOfView");
       //Color camera:
         //vertical FoV: 54 deg. horizontal FoV: 84 deg.
     // KinectV1

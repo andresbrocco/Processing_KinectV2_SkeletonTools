@@ -3,7 +3,11 @@
  * @param meters real world dimension
  * @return screen dimension
  */
-float reScaleX(float meters){
+float reScaleX(float meters, String whoCalledMe){
+  if(Float.isNaN(meters)){
+    println("NaN in: "+whoCalledMe);
+    exit();
+  }
   float horizontalMargin = max(width-height, 0)/2;
   return map(meters, -2, 2, horizontalMargin-width/2, width/2-horizontalMargin);
 }
@@ -13,7 +17,11 @@ float reScaleX(float meters){
  * @param meters real world dimension
  * @return screen dimension
  */
-float reScaleY(float meters){
+float reScaleY(float meters, String whoCalledMe){
+  if(Float.isNaN(meters)){
+    println("NaN in: "+whoCalledMe);
+    exit();
+  }
   float verticalMargin = max(height-width, 0)/2;
   return map(meters, -2, 2, verticalMargin-height/2, height/2-verticalMargin);
 }
@@ -23,7 +31,11 @@ float reScaleY(float meters){
  * @param meters real world dimension
  * @return screen dimension
  */
-float reScaleZ(float meters){
+float reScaleZ(float meters, String whoCalledMe){
+  if(Float.isNaN(meters)){
+    println("NaN in: "+whoCalledMe);
+    exit();
+  }
   return map(meters, 0, 4, 0, min(width, height));
 }
 
