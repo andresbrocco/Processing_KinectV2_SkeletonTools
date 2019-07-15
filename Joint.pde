@@ -26,6 +26,7 @@ public class Joint{
   private PVector measuredDirectionX;
   private PVector measuredDirectionY;
   private PVector measuredDirectionZ;
+  private Pollock pollock;
   
   public Joint(int jointId, KJoint kJoint, Skeleton skeleton){
     this.skeleton = skeleton;
@@ -38,10 +39,12 @@ public class Joint{
     this.averageDistanceBetweenMeasuredPositionAndEstimatedPosition = 0.05; // measurement error in meters
     this.distanceBetweenMeasuredPositionAndEstimatedPositionStandardDeviation = 0.025; // in meters. Pure guess!
     this.estimatedVelocity = new PVector(0,0,0);
+    this.estimatedAcceleration = new PVector(0,0,0);
     this.estimatedOrientation = this.measuredOrientation;
     this.previousEstimatedOrientation = this.estimatedOrientation;
     this.averageAngleBetweenMeasuredOrientationAndPredictedCurrentOrientation = 1; // in radians. Pure guess! 
     this.angleBetweenMeasuredOrientationAndPredictedCurrentOrientationStandardDeviation = 1; // in radians. Pure guess!
+    this.pollock = new Pollock(this);
   }
   
   public void addChildBone(Bone childBone){
@@ -82,9 +85,10 @@ public class Joint{
       this.updateOrientation(adjustedConfidenceParameters);
       this.calculateCoordinateSystemOrientation();
     }
+    this.pollock.update();
     for(Bone childBone:this.childBones){// Continue Chained Update, calling next bones:      
       childBone.update(confidenceParameters); 
-    }    
+    }
   }
   
 /**
@@ -228,6 +232,7 @@ public class Joint{
     if(!this.isEndJoint){
       this.drawOrientation(drawEstimatedOrientation,  drawMeasuredOrientation); // estimated, measured
     }
+    this.pollock.draw();
   }
   
 /**

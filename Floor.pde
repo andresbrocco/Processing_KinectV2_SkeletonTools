@@ -41,6 +41,61 @@ class Floor{
   }
   
 /**
+ * Save calibration in a '.csv' file.
+ */
+  private void saveCalibration(){
+    println("Enter floor calibration name:");
+    userTextInput = "";
+    gettingUserTextInput = true;
+    while(gettingUserTextInput) delay(100);
+    if(userTextInput == ""){
+      println("Invalid name. Floor calibration was not saved.");
+    } else {
+      Table historyOfFeetPositionsTable = new Table();
+      historyOfFeetPositionsTable.addColumn("idx");
+      historyOfFeetPositionsTable.addColumn("x");
+      historyOfFeetPositionsTable.addColumn("y");
+      historyOfFeetPositionsTable.addColumn("z");
+      
+      for(int row=0; row<this.indexToBeUpdated; row++){
+        TableRow newRow = historyOfFeetPositionsTable.addRow();
+        newRow.setInt("idx", row);
+        newRow.setFloat("x", (float) historyOfFeetPositions.get(row, 0));
+        newRow.setFloat("y", (float) historyOfFeetPositions.get(row, 1));
+        newRow.setFloat("z", (float) historyOfFeetPositions.get(row, 2));
+      }
+      saveTable(historyOfFeetPositionsTable, "floorCalibrations/"+ userTextInput + ".csv");
+      println("Saved Floor Calibration in the file: "+ userTextInput + ".csv");
+    }
+  }
+  
+/**
+ * Load '.csv' calibration file.
+ */
+  public void loadCalibration(File selectedCalibrationFile){
+    if (selectedCalibrationFile == null) {
+      println("Didn't load any floor calibration file.");
+    } else {
+      Table loadedHistoryOfFeetPositions = loadTable(selectedCalibrationFile.getAbsolutePath(), "header");
+      println(loadedHistoryOfFeetPositions.getRowCount() + " total feet positions in calibration file"); 
+      for (TableRow row : loadedHistoryOfFeetPositions.rows()) {
+        this.indexToBeUpdated = row.getInt("idx");
+        float x = row.getFloat("x");
+        float y = row.getFloat("y");
+        float z = row.getFloat("z");
+        println(this.indexToBeUpdated + " " + x + " "+ y + " "+ z);
+        this.historyOfFeetPositions.set(this.indexToBeUpdated, 0, (double) x);
+        this.historyOfFeetPositions.set(this.indexToBeUpdated, 1, (double) y);
+        this.historyOfFeetPositions.set(this.indexToBeUpdated, 2, (double) z);
+      }
+      this.updateAverageFeetPosition();
+      this.calculateFloor();
+      println("this.indexToBeUpdated: "+this.indexToBeUpdated);
+      if(this.indexToBeUpdated > 3) this.isCalibrated = true;
+    }
+  }
+  
+/**
  * Starts and stops the calibration process.
  */
   public void manageCalibration(){
@@ -70,13 +125,14 @@ class Floor{
     println("Get in position and clap to get a snapshot.");
     while(this.isCalibrating){
       for(Skeleton skeleton:this.scene.activeSkeletons.values()){
-        if(skeleton.features.distanceBetweenHands < 0.1){
+        if(skeleton.distanceBetweenHands < 0.1){
           this.addSkeletonFeet(skeleton);
           this.calculateFloor();
         }
       }
       delay(100); // minimum time between snapshots
     }
+    if(this.indexToBeUpdated > 3) this.saveCalibration();
   }
   
 /**
@@ -504,4 +560,11 @@ class Floor{
  */
 void startCalibration(){ 
   scene.floor.calibrate();
+}
+
+/**
+ * This method exists to make possible to load calibration on another thread other than the draw() loop.
+ */
+void loadFloorCalibrationThread(File selectedCalibrationFile){ 
+  scene.floor.loadCalibration(selectedCalibrationFile);
 }

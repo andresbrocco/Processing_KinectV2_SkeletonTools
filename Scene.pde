@@ -33,6 +33,7 @@ public class Scene{
   }
   
   public void init(){
+    selectInput("Choose a calibrated floor CSV File:", "loadFloorCalibrationThread");
     kinect.enableSkeleton3DMap(true);
     kinect.init();  
   }
@@ -101,9 +102,9 @@ public class Scene{
     /* Testing Steering Wheel rotating the scene:*/
     
     /*for (Skeleton skeleton:this.activeSkeletons.values()) {
-      this.cameraRotX = this.cameraRotX + skeleton.features.steeringWheel.pitchStep;
-      this.cameraRotY = this.cameraRotY + skeleton.features.steeringWheel.yawStep;
-      this.cameraRotZ = this.cameraRotZ + skeleton.features.steeringWheel.rollStep;
+      this.cameraRotX = this.cameraRotX + skeleton.steeringWheel.pitchStep;
+      this.cameraRotY = this.cameraRotY + skeleton.steeringWheel.yawStep;
+      this.cameraRotZ = this.cameraRotZ + skeleton.steeringWheel.rollStep;
     }*/
     
     rotateX(this.cameraRotX);

@@ -18,7 +18,7 @@ public class Bone{
   private float angleBetweenMeasuredDirectionAndEstimatedDirectionStandardDeviation; //std of theta 
   private PVector currentEstimatedDirection;
   private PVector previousEstimatedDirection;
-  private PVector relativeOrientation; // roll, pitch, yaw
+  private PVector relativeOrientation; // roll, pitch, yaw.
   
   public Bone(Skeleton skeleton, int boneId, Joint parentJoint, Joint childJoint){ // The bones must be initialized after all the joints, because its constructor acess values from its joints.
     this.skeleton = skeleton;
