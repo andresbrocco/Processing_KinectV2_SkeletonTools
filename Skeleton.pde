@@ -78,8 +78,8 @@ public class Skeleton{
     for(int b=0; b<24; b++){
       this.joints[skeletonConnections[b][1]].addChildBone(this.bones[skeletonConnections[b][0]]);
     }
-    this.leftHandPollock = new Pollock(this, "left");
-    this.rightHandPollock = new Pollock(this, "right");
+    this.leftHandPollock = new Pollock(this, "LEFT");
+    this.rightHandPollock = new Pollock(this, "RIGHT");
     this.appearedLastInFrame = frameCount;
   }
   
