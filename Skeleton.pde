@@ -1,7 +1,8 @@
-/** //<>// //<>//
+/** //<>// //<>// //<>//
  * A skeleton contains all the information related to a specific body. It also contains the algorithms to smooth its movement and draw itself on screen.
  */
 public class Skeleton{
+  // Core attributes:
   private Scene scene;
   private int indexColor; // Which body is it (color = - M*255*256^2 - C*255*256 - Y*255 -1)
   private int[] skeletonColorRGB = new int[3]; // in RGB
@@ -9,8 +10,8 @@ public class Skeleton{
   private color colorMeasured;
   private int appearedLastInFrame = 0; // counter to keep track if skeleton is dead or not.
   private float responseTradeoff = 0.2; // Tradeoff between speed and smoothness: close to 0 gives faster responses but more noise. Larger values give lazy skeleton. 
-  private float alpha = 0.33; // alpha = confidence of new measurement
-  private float beta = 0.33; // beta = confidence of estimated position based on previous position and velocity
+  private float alpha = 0.5; // alpha = confidence of new measurement
+  private float beta = 0.25; // beta = confidence of estimated position based on previous position and velocity
   private float gamma = 1 - this.alpha - this.beta; // gamma = confidence of estimated position based on parentBone orientation and length
   private float[] confidenceParameters = {alpha, beta, gamma};
   private float dampingFactor = 0.707; // 1 is not damped. 0 is fully damped.
@@ -20,7 +21,6 @@ public class Skeleton{
   private float[] estimatedHandRadius = {0.5, 0.5}; // goes from 0 to 1, indicating how opened the hand is.
   private Joint[] joints = new Joint[25];
   private Bone[] bones = new Bone[24];
-  public Features features;
   private int[][] skeletonConnections = {// {boneId, parentJointId, childJointId}
                                 {0 , SPINE_MID, SPINE_BASE}, 
                                 {1 , SPINE_MID, SPINE_SHOULDER}, 
@@ -46,6 +46,14 @@ public class Skeleton{
                                 {21, WRIST_LEFT , THUMB_LEFT}, 
                                 {22, HAND_RIGHT, HAND_TIP_RIGHT}, 
                                 {23, WRIST_RIGHT, THUMB_RIGHT}};
+  // Skeleton Features:
+  public float averageMomentum = 0; // in m/s. In general, above 1 can be considered steady.
+  public float headInclination = 0; // head inclination relative to Z axis, in radians
+  public float shoulderTension = 0; // SHOULDER height relative to SPINESHOULDER
+  public SteeringWheel steeringWheel = new SteeringWheel(this);
+  public float distanceBetweenHands;
+  public Pollock leftHandPollock;
+  public Pollock rightHandPollock;
                       
   public Skeleton(KSkeleton kSkeleton, Scene scene){
     this.scene = scene;
@@ -70,8 +78,9 @@ public class Skeleton{
     for(int b=0; b<24; b++){
       this.joints[skeletonConnections[b][1]].addChildBone(this.bones[skeletonConnections[b][0]]);
     }
+    this.leftHandPollock = new Pollock(this, "LEFT");
+    this.rightHandPollock = new Pollock(this, "RIGHT");
     this.appearedLastInFrame = frameCount;
-    this.features = new Features(this);
   }
   
 /**
@@ -88,8 +97,9 @@ public class Skeleton{
       joints[j].receiveNewMeasurements(kJoints[j]);
     }
     this.smoothSkeleton();
+    this.leftHandPollock.update();
+    this.rightHandPollock.update();
     this.appearedLastInFrame = frameCount;
-    this.features.update();
   }
   
 /**
@@ -176,6 +186,8 @@ public class Skeleton{
     if(drawHandStates){
       this.drawHandStates();
     }
+    this.leftHandPollock.draw();
+    this.rightHandPollock.draw();
     // Both below shall be deleted
     // testing relative position to the floor coordinate system:
     //if(this.scene.floor.isCalibrated) this.testingRelativePosition();
@@ -187,12 +199,12 @@ public class Skeleton{
  * For testing only, shall be deprecated
  */
   private void drawSteeringWheel(){
-    PVector vertex1 = PVector.mult(new PVector(cos(this.features.steeringWheel.yawAngle), 0, sin(this.features.steeringWheel.yawAngle)), 100*this.features.steeringWheel.yawSize);
-    PVector vertex2 = PVector.mult(new PVector(-cos(this.features.steeringWheel.yawAngle), 0, -sin(this.features.steeringWheel.yawAngle)), 100*this.features.steeringWheel.yawSize);
-    PVector vertex3 = PVector.mult(new PVector(0, cos(this.features.steeringWheel.pitchAngle), sin(this.features.steeringWheel.pitchAngle)), 100*this.features.steeringWheel.pitchSize);
-    PVector vertex4 = PVector.mult(new PVector(0, -cos(this.features.steeringWheel.pitchAngle), -sin(this.features.steeringWheel.pitchAngle)), 100*this.features.steeringWheel.pitchSize);
-    PVector vertex5 = PVector.mult(new PVector(cos(this.features.steeringWheel.rollAngle), sin(this.features.steeringWheel.rollAngle), 0), 100*this.features.steeringWheel.rollSize);
-    PVector vertex6 = PVector.mult(new PVector(-cos(this.features.steeringWheel.rollAngle), -sin(this.features.steeringWheel.rollAngle), 0), 100*this.features.steeringWheel.rollSize);
+    PVector vertex1 = PVector.mult(new PVector(cos(this.steeringWheel.yawAngle), 0, sin(this.steeringWheel.yawAngle)), 100*this.steeringWheel.yawSize);
+    PVector vertex2 = PVector.mult(new PVector(-cos(this.steeringWheel.yawAngle), 0, -sin(this.steeringWheel.yawAngle)), 100*this.steeringWheel.yawSize);
+    PVector vertex3 = PVector.mult(new PVector(0, cos(this.steeringWheel.pitchAngle), sin(this.steeringWheel.pitchAngle)), 100*this.steeringWheel.pitchSize);
+    PVector vertex4 = PVector.mult(new PVector(0, -cos(this.steeringWheel.pitchAngle), -sin(this.steeringWheel.pitchAngle)), 100*this.steeringWheel.pitchSize);
+    PVector vertex5 = PVector.mult(new PVector(cos(this.steeringWheel.rollAngle), sin(this.steeringWheel.rollAngle), 0), 100*this.steeringWheel.rollSize);
+    PVector vertex6 = PVector.mult(new PVector(-cos(this.steeringWheel.rollAngle), -sin(this.steeringWheel.rollAngle), 0), 100*this.steeringWheel.rollSize);
     strokeWeight(5);
     stroke(color(128, 67, 23));
     line(vertex1.x, vertex1.y, vertex1.z, vertex2.x, vertex2.y, vertex2.z);
@@ -202,15 +214,32 @@ public class Skeleton{
     line(vertex5.x, vertex5.y, vertex5.z, vertex6.x, vertex6.y, vertex6.z);
   }
   
-/**
- * For testing only, shall be deprecated
- */
-  private void testingRelativePosition(){ // For testing
-    pushMatrix();
-    translate(reScaleX(this.scene.floor.centerPosition.x), reScaleY(this.scene.floor.centerPosition.y), reScaleZ(this.scene.floor.centerPosition.z));
-    PVector point = PVector.mult(this.scene.floor.basisVectorX, this.features.leftHandPositionLocal.x).add(PVector.mult(this.scene.floor.basisVectorY, this.features.leftHandPositionLocal.y)).add(PVector.mult(this.scene.floor.basisVectorZ, this.features.leftHandPositionLocal.z));
-    line(0, 0, 0, reScaleX(point.x), reScaleY(point.y), reScaleZ(point.z));
-    popMatrix();
+  private void updateHeadInclination(){
+    PVector vectorFromNeckToHead = PVector.sub(this.joints[HEAD].estimatedPosition, this.joints[NECK].estimatedPosition);
+    if(this.scene.floor.isCalibrated){
+      this.headInclination = asin(PVector.dot(vectorFromNeckToHead, this.scene.floor.basisVectorX)/vectorFromNeckToHead.mag());
+    } else {
+      this.headInclination = asin(vectorFromNeckToHead.x/vectorFromNeckToHead.mag());
+    }
+    //println("headInclination: "+this.headInclination);
+  }
+  
+  private void updateShoulderTension(){
+    PVector vectorFromSpineShoulderToLeftShoulder = PVector.sub(this.joints[SHOULDER_LEFT].estimatedPosition, this.joints[SPINE_SHOULDER].estimatedPosition);
+    PVector vectorFromSpineShoulderToRightShoulder = PVector.sub(this.joints[SHOULDER_RIGHT].estimatedPosition, this.joints[SPINE_SHOULDER].estimatedPosition);
+    PVector vectorFromSpineShoulderToNeck = PVector.sub(this.joints[NECK].estimatedPosition, this.joints[SPINE_SHOULDER].estimatedPosition);
+    PVector resultantVectorFromSpineShoulderToShoulders = PVector.add(vectorFromSpineShoulderToLeftShoulder, vectorFromSpineShoulderToRightShoulder);
+    this.shoulderTension = PVector.dot(resultantVectorFromSpineShoulderToShoulders, vectorFromSpineShoulderToNeck);
+  }
+  
+  private void updateMomentum(){
+    float alpha = 0.02;
+    float measuredMomentum = 0;
+    for (int j = 0; j<25; j++){
+      measuredMomentum = measuredMomentum + this.joints[j].estimatedVelocity.mag();
+    }
+    this.averageMomentum = lerp(this.averageMomentum, measuredMomentum, alpha);
+    //println("averageMomentum: "+ this.averageMomentum);
   }
   
 /**
@@ -229,13 +258,13 @@ public class Skeleton{
       sphereDetail((int)(sphereRadius*2/3)+3);
       pushMatrix();
       if(h==0){ // left hand
-        translate(reScaleX(this.joints[HAND_LEFT].estimatedPosition.x),
-                  reScaleY(this.joints[HAND_LEFT].estimatedPosition.y),
-                  reScaleZ(this.joints[HAND_LEFT].estimatedPosition.z));
+        translate(reScaleX(this.joints[HAND_LEFT].estimatedPosition.x, "skeleton.drawHandRadius"),
+                  reScaleY(this.joints[HAND_LEFT].estimatedPosition.y, "skeleton.drawHandRadius"),
+                  reScaleZ(this.joints[HAND_LEFT].estimatedPosition.z, "skeleton.drawHandRadius"));
       } else{ // right hand
-        translate(reScaleX(this.joints[HAND_RIGHT].estimatedPosition.x),
-                  reScaleY(this.joints[HAND_RIGHT].estimatedPosition.y),
-                  reScaleZ(this.joints[HAND_RIGHT].estimatedPosition.z));
+        translate(reScaleX(this.joints[HAND_RIGHT].estimatedPosition.x, "skeleton.drawHandRadius"),
+                  reScaleY(this.joints[HAND_RIGHT].estimatedPosition.y, "skeleton.drawHandRadius"),
+                  reScaleZ(this.joints[HAND_RIGHT].estimatedPosition.z, "skeleton.drawHandRadius"));
       }
       sphere(sphereRadius);
       popMatrix();
@@ -270,13 +299,13 @@ public class Skeleton{
       pushMatrix();
       
       if(h==0){ // left hand
-        translate(reScaleX(this.joints[HAND_LEFT].estimatedPosition.x),
-                  reScaleY(this.joints[HAND_LEFT].estimatedPosition.y),
-                  reScaleZ(this.joints[HAND_LEFT].estimatedPosition.z));
+        translate(reScaleX(this.joints[HAND_LEFT].estimatedPosition.x, "skeleton.drawHandStates"),
+                  reScaleY(this.joints[HAND_LEFT].estimatedPosition.y, "skeleton.drawHandStates"),
+                  reScaleZ(this.joints[HAND_LEFT].estimatedPosition.z, "skeleton.drawHandStates"));
       } else{ // right hand
-        translate(reScaleX(this.joints[HAND_RIGHT].estimatedPosition.x),
-                  reScaleY(this.joints[HAND_RIGHT].estimatedPosition.y),
-                  reScaleZ(this.joints[HAND_RIGHT].estimatedPosition.z));
+        translate(reScaleX(this.joints[HAND_RIGHT].estimatedPosition.x, "skeleton.drawHandStates"),
+                  reScaleY(this.joints[HAND_RIGHT].estimatedPosition.y, "skeleton.drawHandStates"),
+                  reScaleZ(this.joints[HAND_RIGHT].estimatedPosition.z, "skeleton.drawHandStates"));
       }
       sphere(sphereRadius);
       popMatrix();

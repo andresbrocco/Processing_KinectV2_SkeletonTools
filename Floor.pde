@@ -41,6 +41,61 @@ class Floor{
   }
   
 /**
+ * Save calibration in a '.csv' file.
+ */
+  private void saveCalibration(){
+    println("Enter floor calibration name:");
+    userTextInput = "";
+    gettingUserTextInput = true;
+    while(gettingUserTextInput) delay(100);
+    if(userTextInput == ""){
+      println("Invalid name. Floor calibration was not saved.");
+    } else {
+      Table historyOfFeetPositionsTable = new Table();
+      historyOfFeetPositionsTable.addColumn("idx");
+      historyOfFeetPositionsTable.addColumn("x");
+      historyOfFeetPositionsTable.addColumn("y");
+      historyOfFeetPositionsTable.addColumn("z");
+      
+      for(int row=0; row<this.indexToBeUpdated; row++){
+        TableRow newRow = historyOfFeetPositionsTable.addRow();
+        newRow.setInt("idx", row);
+        newRow.setFloat("x", (float) historyOfFeetPositions.get(row, 0));
+        newRow.setFloat("y", (float) historyOfFeetPositions.get(row, 1));
+        newRow.setFloat("z", (float) historyOfFeetPositions.get(row, 2));
+      }
+      saveTable(historyOfFeetPositionsTable, "floorCalibrations/"+ userTextInput + ".csv");
+      println("Saved Floor Calibration in the file: "+ userTextInput + ".csv");
+    }
+  }
+  
+/**
+ * Load '.csv' calibration file.
+ */
+  public void loadCalibration(File selectedCalibrationFile){
+    if (selectedCalibrationFile == null) {
+      println("Didn't load any floor calibration file.");
+    } else {
+      Table loadedHistoryOfFeetPositions = loadTable(selectedCalibrationFile.getAbsolutePath(), "header");
+      println(loadedHistoryOfFeetPositions.getRowCount() + " total feet positions in calibration file"); 
+      for (TableRow row : loadedHistoryOfFeetPositions.rows()) {
+        this.indexToBeUpdated = row.getInt("idx");
+        float x = row.getFloat("x");
+        float y = row.getFloat("y");
+        float z = row.getFloat("z");
+        println(this.indexToBeUpdated + " " + x + " "+ y + " "+ z);
+        this.historyOfFeetPositions.set(this.indexToBeUpdated, 0, (double) x);
+        this.historyOfFeetPositions.set(this.indexToBeUpdated, 1, (double) y);
+        this.historyOfFeetPositions.set(this.indexToBeUpdated, 2, (double) z);
+      }
+      this.updateAverageFeetPosition();
+      this.calculateFloor();
+      println("this.indexToBeUpdated: "+this.indexToBeUpdated);
+      if(this.indexToBeUpdated > 3) this.isCalibrated = true;
+    }
+  }
+  
+/**
  * Starts and stops the calibration process.
  */
   public void manageCalibration(){
@@ -70,13 +125,14 @@ class Floor{
     println("Get in position and clap to get a snapshot.");
     while(this.isCalibrating){
       for(Skeleton skeleton:this.scene.activeSkeletons.values()){
-        if(skeleton.features.distanceBetweenHands < 0.1){
+        if(skeleton.distanceBetweenHands < 0.1){
           this.addSkeletonFeet(skeleton);
           this.calculateFloor();
         }
       }
       delay(100); // minimum time between snapshots
     }
+    if(this.indexToBeUpdated > 3) this.saveCalibration();
   }
   
 /**
@@ -333,10 +389,10 @@ class Floor{
       stroke(this.scene.roomColor);
       fill(color(30, 60, 90, 128));
       beginShape();
-      vertex(reScaleX(this.planeCornerNN.x), reScaleY(this.planeCornerNN.y), reScaleZ(this.planeCornerNN.z));
-      vertex(reScaleX(this.planeCornerNP.x), reScaleY(this.planeCornerNP.y), reScaleZ(this.planeCornerNP.z));
-      vertex(reScaleX(this.planeCornerPP.x), reScaleY(this.planeCornerPP.y), reScaleZ(this.planeCornerPP.z));
-      vertex(reScaleX(this.planeCornerPN.x), reScaleY(this.planeCornerPN.y), reScaleZ(this.planeCornerPN.z));
+      vertex(reScaleX(this.planeCornerNN.x, "floor.drawPlane"), reScaleY(this.planeCornerNN.y, "floor.drawPlane"), reScaleZ(this.planeCornerNN.z, "floor.drawPlane"));
+      vertex(reScaleX(this.planeCornerNP.x, "floor.drawPlane"), reScaleY(this.planeCornerNP.y, "floor.drawPlane"), reScaleZ(this.planeCornerNP.z, "floor.drawPlane"));
+      vertex(reScaleX(this.planeCornerPP.x, "floor.drawPlane"), reScaleY(this.planeCornerPP.y, "floor.drawPlane"), reScaleZ(this.planeCornerPP.z, "floor.drawPlane"));
+      vertex(reScaleX(this.planeCornerPN.x, "floor.drawPlane"), reScaleY(this.planeCornerPN.y, "floor.drawPlane"), reScaleZ(this.planeCornerPN.z, "floor.drawPlane"));
       endShape(CLOSE);
     }
   }
@@ -364,30 +420,30 @@ class Floor{
       stroke(this.scene.roomColor);
       // Lower Face:
       beginShape();
-      vertex(reScaleX(floorCorner1.x), reScaleY(floorCorner1.y), reScaleZ(floorCorner1.z));
-      vertex(reScaleX(floorCorner2.x), reScaleY(floorCorner2.y), reScaleZ(floorCorner2.z));
-      vertex(reScaleX(floorCorner3.x), reScaleY(floorCorner3.y), reScaleZ(floorCorner3.z));
-      vertex(reScaleX(floorCorner4.x), reScaleY(floorCorner4.y), reScaleZ(floorCorner4.z));
+      vertex(reScaleX(floorCorner1.x, "floor.drawExtremePointsBox"), reScaleY(floorCorner1.y, "floor.drawExtremePointsBox"), reScaleZ(floorCorner1.z, "floor.drawExtremePointsBox"));
+      vertex(reScaleX(floorCorner2.x, "floor.drawExtremePointsBox"), reScaleY(floorCorner2.y, "floor.drawExtremePointsBox"), reScaleZ(floorCorner2.z, "floor.drawExtremePointsBox"));
+      vertex(reScaleX(floorCorner3.x, "floor.drawExtremePointsBox"), reScaleY(floorCorner3.y, "floor.drawExtremePointsBox"), reScaleZ(floorCorner3.z, "floor.drawExtremePointsBox"));
+      vertex(reScaleX(floorCorner4.x, "floor.drawExtremePointsBox"), reScaleY(floorCorner4.y, "floor.drawExtremePointsBox"), reScaleZ(floorCorner4.z, "floor.drawExtremePointsBox"));
       endShape(CLOSE);
       
       // Upper Face:
       beginShape();
-      vertex(reScaleX(floorCorner5.x), reScaleY(floorCorner5.y), reScaleZ(floorCorner5.z));
-      vertex(reScaleX(floorCorner6.x), reScaleY(floorCorner6.y), reScaleZ(floorCorner6.z));
-      vertex(reScaleX(floorCorner7.x), reScaleY(floorCorner7.y), reScaleZ(floorCorner7.z));
-      vertex(reScaleX(floorCorner8.x), reScaleY(floorCorner8.y), reScaleZ(floorCorner8.z));
+      vertex(reScaleX(floorCorner5.x, "floor.drawExtremePointsBox"), reScaleY(floorCorner5.y, "floor.drawExtremePointsBox"), reScaleZ(floorCorner5.z, "floor.drawExtremePointsBox"));
+      vertex(reScaleX(floorCorner6.x, "floor.drawExtremePointsBox"), reScaleY(floorCorner6.y, "floor.drawExtremePointsBox"), reScaleZ(floorCorner6.z, "floor.drawExtremePointsBox"));
+      vertex(reScaleX(floorCorner7.x, "floor.drawExtremePointsBox"), reScaleY(floorCorner7.y, "floor.drawExtremePointsBox"), reScaleZ(floorCorner7.z, "floor.drawExtremePointsBox"));
+      vertex(reScaleX(floorCorner8.x, "floor.drawExtremePointsBox"), reScaleY(floorCorner8.y, "floor.drawExtremePointsBox"), reScaleZ(floorCorner8.z, "floor.drawExtremePointsBox"));
       endShape(CLOSE);
       
       // Connecting Lines:
       beginShape(LINES);
-      vertex(reScaleX(floorCorner1.x), reScaleY(floorCorner1.y), reScaleZ(floorCorner1.z));
-      vertex(reScaleX(floorCorner5.x), reScaleY(floorCorner5.y), reScaleZ(floorCorner5.z));
-      vertex(reScaleX(floorCorner2.x), reScaleY(floorCorner2.y), reScaleZ(floorCorner2.z));
-      vertex(reScaleX(floorCorner6.x), reScaleY(floorCorner6.y), reScaleZ(floorCorner6.z));
-      vertex(reScaleX(floorCorner3.x), reScaleY(floorCorner3.y), reScaleZ(floorCorner3.z));
-      vertex(reScaleX(floorCorner7.x), reScaleY(floorCorner7.y), reScaleZ(floorCorner7.z));
-      vertex(reScaleX(floorCorner4.x), reScaleY(floorCorner4.y), reScaleZ(floorCorner4.z));
-      vertex(reScaleX(floorCorner8.x), reScaleY(floorCorner8.y), reScaleZ(floorCorner8.z));
+      vertex(reScaleX(floorCorner1.x, "floor.drawExtremePointsBox"), reScaleY(floorCorner1.y, "floor.drawExtremePointsBox"), reScaleZ(floorCorner1.z, "floor.drawExtremePointsBox"));
+      vertex(reScaleX(floorCorner5.x, "floor.drawExtremePointsBox"), reScaleY(floorCorner5.y, "floor.drawExtremePointsBox"), reScaleZ(floorCorner5.z, "floor.drawExtremePointsBox"));
+      vertex(reScaleX(floorCorner2.x, "floor.drawExtremePointsBox"), reScaleY(floorCorner2.y, "floor.drawExtremePointsBox"), reScaleZ(floorCorner2.z, "floor.drawExtremePointsBox"));
+      vertex(reScaleX(floorCorner6.x, "floor.drawExtremePointsBox"), reScaleY(floorCorner6.y, "floor.drawExtremePointsBox"), reScaleZ(floorCorner6.z, "floor.drawExtremePointsBox"));
+      vertex(reScaleX(floorCorner3.x, "floor.drawExtremePointsBox"), reScaleY(floorCorner3.y, "floor.drawExtremePointsBox"), reScaleZ(floorCorner3.z, "floor.drawExtremePointsBox"));
+      vertex(reScaleX(floorCorner7.x, "floor.drawExtremePointsBox"), reScaleY(floorCorner7.y, "floor.drawExtremePointsBox"), reScaleZ(floorCorner7.z, "floor.drawExtremePointsBox"));
+      vertex(reScaleX(floorCorner4.x, "floor.drawExtremePointsBox"), reScaleY(floorCorner4.y, "floor.drawExtremePointsBox"), reScaleZ(floorCorner4.z, "floor.drawExtremePointsBox"));
+      vertex(reScaleX(floorCorner8.x, "floor.drawExtremePointsBox"), reScaleY(floorCorner8.y, "floor.drawExtremePointsBox"), reScaleZ(floorCorner8.z, "floor.drawExtremePointsBox"));
       endShape();
     }
   }
@@ -417,30 +473,30 @@ class Floor{
       stroke(this.scene.roomColor);
       // Lower Face:
       beginShape();
-      vertex(reScaleX(floorCorner1.x), reScaleY(floorCorner1.y), reScaleZ(floorCorner1.z));
-      vertex(reScaleX(floorCorner2.x), reScaleY(floorCorner2.y), reScaleZ(floorCorner2.z));
-      vertex(reScaleX(floorCorner3.x), reScaleY(floorCorner3.y), reScaleZ(floorCorner3.z));
-      vertex(reScaleX(floorCorner4.x), reScaleY(floorCorner4.y), reScaleZ(floorCorner4.z));
+      vertex(reScaleX(floorCorner1.x, "floor.drawSVDBox"), reScaleY(floorCorner1.y, "floor.drawSVDBox"), reScaleZ(floorCorner1.z, "floor.drawSVDBox"));
+      vertex(reScaleX(floorCorner2.x, "floor.drawSVDBox"), reScaleY(floorCorner2.y, "floor.drawSVDBox"), reScaleZ(floorCorner2.z, "floor.drawSVDBox"));
+      vertex(reScaleX(floorCorner3.x, "floor.drawSVDBox"), reScaleY(floorCorner3.y, "floor.drawSVDBox"), reScaleZ(floorCorner3.z, "floor.drawSVDBox"));
+      vertex(reScaleX(floorCorner4.x, "floor.drawSVDBox"), reScaleY(floorCorner4.y, "floor.drawSVDBox"), reScaleZ(floorCorner4.z, "floor.drawSVDBox"));
       endShape(CLOSE);
       
       // Upper Face:
       beginShape();
-      vertex(reScaleX(floorCorner5.x), reScaleY(floorCorner5.y), reScaleZ(floorCorner5.z));
-      vertex(reScaleX(floorCorner6.x), reScaleY(floorCorner6.y), reScaleZ(floorCorner6.z));
-      vertex(reScaleX(floorCorner7.x), reScaleY(floorCorner7.y), reScaleZ(floorCorner7.z));
-      vertex(reScaleX(floorCorner8.x), reScaleY(floorCorner8.y), reScaleZ(floorCorner8.z));
+      vertex(reScaleX(floorCorner5.x, "floor.drawSVDBox"), reScaleY(floorCorner5.y, "floor.drawSVDBox"), reScaleZ(floorCorner5.z, "floor.drawSVDBox"));
+      vertex(reScaleX(floorCorner6.x, "floor.drawSVDBox"), reScaleY(floorCorner6.y, "floor.drawSVDBox"), reScaleZ(floorCorner6.z, "floor.drawSVDBox"));
+      vertex(reScaleX(floorCorner7.x, "floor.drawSVDBox"), reScaleY(floorCorner7.y, "floor.drawSVDBox"), reScaleZ(floorCorner7.z, "floor.drawSVDBox"));
+      vertex(reScaleX(floorCorner8.x, "floor.drawSVDBox"), reScaleY(floorCorner8.y, "floor.drawSVDBox"), reScaleZ(floorCorner8.z, "floor.drawSVDBox"));
       endShape(CLOSE);
       
       // Connecting Lines:
       beginShape(LINES);
-      vertex(reScaleX(floorCorner1.x), reScaleY(floorCorner1.y), reScaleZ(floorCorner1.z));
-      vertex(reScaleX(floorCorner5.x), reScaleY(floorCorner5.y), reScaleZ(floorCorner5.z));
-      vertex(reScaleX(floorCorner2.x), reScaleY(floorCorner2.y), reScaleZ(floorCorner2.z));
-      vertex(reScaleX(floorCorner6.x), reScaleY(floorCorner6.y), reScaleZ(floorCorner6.z));
-      vertex(reScaleX(floorCorner3.x), reScaleY(floorCorner3.y), reScaleZ(floorCorner3.z));
-      vertex(reScaleX(floorCorner7.x), reScaleY(floorCorner7.y), reScaleZ(floorCorner7.z));
-      vertex(reScaleX(floorCorner4.x), reScaleY(floorCorner4.y), reScaleZ(floorCorner4.z));
-      vertex(reScaleX(floorCorner8.x), reScaleY(floorCorner8.y), reScaleZ(floorCorner8.z));
+      vertex(reScaleX(floorCorner1.x, "floor.drawSVDBox"), reScaleY(floorCorner1.y, "floor.drawSVDBox"), reScaleZ(floorCorner1.z, "floor.drawSVDBox"));
+      vertex(reScaleX(floorCorner5.x, "floor.drawSVDBox"), reScaleY(floorCorner5.y, "floor.drawSVDBox"), reScaleZ(floorCorner5.z, "floor.drawSVDBox"));
+      vertex(reScaleX(floorCorner2.x, "floor.drawSVDBox"), reScaleY(floorCorner2.y, "floor.drawSVDBox"), reScaleZ(floorCorner2.z, "floor.drawSVDBox"));
+      vertex(reScaleX(floorCorner6.x, "floor.drawSVDBox"), reScaleY(floorCorner6.y, "floor.drawSVDBox"), reScaleZ(floorCorner6.z, "floor.drawSVDBox"));
+      vertex(reScaleX(floorCorner3.x, "floor.drawSVDBox"), reScaleY(floorCorner3.y, "floor.drawSVDBox"), reScaleZ(floorCorner3.z, "floor.drawSVDBox"));
+      vertex(reScaleX(floorCorner7.x, "floor.drawSVDBox"), reScaleY(floorCorner7.y, "floor.drawSVDBox"), reScaleZ(floorCorner7.z, "floor.drawSVDBox"));
+      vertex(reScaleX(floorCorner4.x, "floor.drawSVDBox"), reScaleY(floorCorner4.y, "floor.drawSVDBox"), reScaleZ(floorCorner4.z, "floor.drawSVDBox"));
+      vertex(reScaleX(floorCorner8.x, "floor.drawSVDBox"), reScaleY(floorCorner8.y, "floor.drawSVDBox"), reScaleZ(floorCorner8.z, "floor.drawSVDBox"));
       endShape();
     }
   }
@@ -457,28 +513,28 @@ class Floor{
       PVector coordinateSystemDirectionZ = qMult(qMult(this.orientation, new Quaternion(0, 0, 0, 1)), qConjugate(this.orientation)).vector; 
       //println("coordinateSystemDirectionX mag: "+coordinateSystemDirectionX.mag());
       pushMatrix();
-      translate(reScaleX(this.centerPosition.x), reScaleY(this.centerPosition.y), reScaleZ(this.centerPosition.z));
+      translate(reScaleX(this.centerPosition.x, "floor.drawCoordinateSystem"), reScaleY(this.centerPosition.y, "floor.drawCoordinateSystem"), reScaleZ(this.centerPosition.z, "floor.drawCoordinateSystem"));
       strokeWeight(5);
       float size = 0.5; // meters
       stroke(255, 0, 0, 170);
-      line(0, 0, 0, reScaleX(size*coordinateSystemDirectionX.x), reScaleY(size*coordinateSystemDirectionX.y), reScaleZ(size*coordinateSystemDirectionX.z)); // The Processing's coordinate system is inconsistent (X cross Y != Z)
+      line(0, 0, 0, reScaleX(size*coordinateSystemDirectionX.x, "floor.drawCoordinateSystem"), reScaleY(size*coordinateSystemDirectionX.y, "floor.drawCoordinateSystem"), reScaleZ(size*coordinateSystemDirectionX.z, "floor.drawCoordinateSystem")); // The Processing's coordinate system is inconsistent (X cross Y != Z)
       stroke(0, 255, 0, 170);
-      line(0, 0, 0, reScaleX(size*coordinateSystemDirectionY.x), reScaleY(size*coordinateSystemDirectionY.y), reScaleZ(size*coordinateSystemDirectionY.z));
+      line(0, 0, 0, reScaleX(size*coordinateSystemDirectionY.x, "floor.drawCoordinateSystem"), reScaleY(size*coordinateSystemDirectionY.y, "floor.drawCoordinateSystem"), reScaleZ(size*coordinateSystemDirectionY.z, "floor.drawCoordinateSystem"));
       stroke(0, 0, 255, 170);
-      line(0, 0, 0, reScaleX(size*coordinateSystemDirectionZ.x), reScaleY(size*coordinateSystemDirectionZ.y), reScaleZ(size*coordinateSystemDirectionZ.z));
+      line(0, 0, 0, reScaleX(size*coordinateSystemDirectionZ.x, "floor.drawCoordinateSystem"), reScaleY(size*coordinateSystemDirectionZ.y, "floor.drawCoordinateSystem"), reScaleZ(size*coordinateSystemDirectionZ.z, "floor.drawCoordinateSystem"));
       popMatrix();
     }
     if(fromSVDBasis){
       pushMatrix();
-      translate(reScaleX(this.averageFeetPosition.x), reScaleY(this.averageFeetPosition.y), reScaleZ(this.averageFeetPosition.z));
+      translate(reScaleX(this.averageFeetPosition.x, "floor.drawCoordinateSystem"), reScaleY(this.averageFeetPosition.y, "floor.drawCoordinateSystem"), reScaleZ(this.averageFeetPosition.z, "floor.drawCoordinateSystem"));
       strokeWeight(5);
       float size = 0.5; // meters
       stroke(255, 0, 0, 170);
-      line(0, 0, 0, reScaleX(size*this.basisVectorX.x), reScaleY(size*this.basisVectorX.y), reScaleZ(size*this.basisVectorX.z)); // The Processing's coordinate system is inconsistent (X cross Y != Z)
+      line(0, 0, 0, reScaleX(size*this.basisVectorX.x, "floor.drawCoordinateSystem"), reScaleY(size*this.basisVectorX.y, "floor.drawCoordinateSystem"), reScaleZ(size*this.basisVectorX.z, "floor.drawCoordinateSystem")); // The Processing's coordinate system is inconsistent (X cross Y != Z)
       stroke(0, 255, 0, 170);
-      line(0, 0, 0, reScaleX(size*this.basisVectorY.x), reScaleY(size*this.basisVectorY.y), reScaleZ(size*this.basisVectorY.z));
+      line(0, 0, 0, reScaleX(size*this.basisVectorY.x, "floor.drawCoordinateSystem"), reScaleY(size*this.basisVectorY.y, "floor.drawCoordinateSystem"), reScaleZ(size*this.basisVectorY.z, "floor.drawCoordinateSystem"));
       stroke(0, 0, 255, 170);
-      line(0, 0, 0, reScaleX(size*this.basisVectorZ.x), reScaleY(size*this.basisVectorZ.y), reScaleZ(size*this.basisVectorZ.z));
+      line(0, 0, 0, reScaleX(size*this.basisVectorZ.x, "floor.drawCoordinateSystem"), reScaleY(size*this.basisVectorZ.y, "floor.drawCoordinateSystem"), reScaleZ(size*this.basisVectorZ.z, "floor.drawCoordinateSystem"));
       popMatrix();
     }
   }
@@ -490,7 +546,7 @@ class Floor{
     sphereDetail(6);
     for(int j=0; j<this.indexToBeUpdated; j++){
       pushMatrix();
-      translate(reScaleX((float)this.historyOfFeetPositions.get(j, 0)), reScaleY((float)this.historyOfFeetPositions.get(j, 1)), reScaleZ((float)this.historyOfFeetPositions.get(j, 2)));
+      translate(reScaleX((float)this.historyOfFeetPositions.get(j, 0), "floor.drawData"), reScaleY((float)this.historyOfFeetPositions.get(j, 1), "floor.drawData"), reScaleZ((float)this.historyOfFeetPositions.get(j, 2), "floor.drawData"));
       fill(255, 0, 128, 128);
       noStroke();
       sphere(5);
@@ -504,4 +560,11 @@ class Floor{
  */
 void startCalibration(){ 
   scene.floor.calibrate();
+}
+
+/**
+ * This method exists to make possible to load calibration on another thread other than the draw() loop.
+ */
+void loadFloorCalibrationThread(File selectedCalibrationFile){ 
+  scene.floor.loadCalibration(selectedCalibrationFile);
 }

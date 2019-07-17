@@ -3,7 +3,7 @@
  */
 public class Joint{
   private Skeleton skeleton;
-  private int jointId;
+  private int id;
   private boolean isEndJoint = false;
   private Joint parentJoint;
   private Bone parentBone;
@@ -13,8 +13,8 @@ public class Joint{
   private float averageDistanceBetweenMeasuredPositionAndEstimatedPosition;
   private float distanceBetweenMeasuredPositionAndEstimatedPositionStandardDeviation; 
   private PVector estimatedPosition;
-  private PVector estimatedVelocity;
-  private PVector estimatedAcceleration;
+  private PVector estimatedVelocity = new PVector(0,0,0);
+  private PVector estimatedAcceleration = new PVector(0,0,0);
   private Quaternion measuredOrientation;
   private float averageAngleBetweenMeasuredOrientationAndPredictedCurrentOrientation; // theta
   private float angleBetweenMeasuredOrientationAndPredictedCurrentOrientationStandardDeviation; // std of theta: angle between measuredOrientation and estimatedOrientation. 
@@ -27,17 +27,16 @@ public class Joint{
   private PVector measuredDirectionY;
   private PVector measuredDirectionZ;
   
-  public Joint(int jointId, KJoint kJoint, Skeleton skeleton){
+  public Joint(int id, KJoint kJoint, Skeleton skeleton){
     this.skeleton = skeleton;
-    this.jointId = jointId;
-    if(this.jointId==3 || this.jointId==15 || this.jointId==19 || this.jointId>20){
+    this.id = id;
+    if(this.id==3 || this.id==15 || this.id==19 || this.id>20){
       this.isEndJoint = true;
     }
     this.receiveNewMeasurements(kJoint);
     this.estimatedPosition = this.measuredPosition;
     this.averageDistanceBetweenMeasuredPositionAndEstimatedPosition = 0.05; // measurement error in meters
     this.distanceBetweenMeasuredPositionAndEstimatedPositionStandardDeviation = 0.025; // in meters. Pure guess!
-    this.estimatedVelocity = new PVector(0,0,0);
     this.estimatedOrientation = this.measuredOrientation;
     this.previousEstimatedOrientation = this.estimatedOrientation;
     this.averageAngleBetweenMeasuredOrientationAndPredictedCurrentOrientation = 1; // in radians. Pure guess! 
@@ -67,7 +66,7 @@ public class Joint{
     } else { // replace impossible measurements with prediction.
       this.measuredPosition = PVector.add(this.estimatedPosition, PVector.mult(this.estimatedVelocity, this.skeleton.scene.currentDeltaT));
       this.measuredOrientation = qSlerp(this.previousEstimatedOrientation, this.estimatedOrientation, 1 + this.skeleton.scene.currentDeltaT/this.skeleton.scene.previousDeltaT);
-      println("impossible measurement of joint "+ this.jointId+" received and discarded (too close to kinect): "+kjoint.getPosition());
+      println("impossible measurement of joint "+ this.id+" received and discarded (too close to kinect): "+kjoint.getPosition());
     }
   }
   
@@ -84,7 +83,7 @@ public class Joint{
     }
     for(Bone childBone:this.childBones){// Continue Chained Update, calling next bones:      
       childBone.update(confidenceParameters); 
-    }    
+    }
   }
   
 /**
@@ -96,7 +95,7 @@ public class Joint{
   private void updatePosition(float[] confidenceParameters){
     PVector newEstimatedPosition;
     float[] adjustedConfidenceParametersForresponseTradeoff = adjustConfidenceParametersByResponseTradeoff(confidenceParameters);
-    if(jointId == 1){ // SpineMid
+    if(this.id == 1){ // SpineMid
       newEstimatedPosition = PVector.add(this.estimatedPosition, PVector.mult(this.estimatedVelocity, this.skeleton.scene.currentDeltaT));
     } 
     else{ // Common Joints
@@ -110,14 +109,12 @@ public class Joint{
     float measuredPositionConfidence = howCloseToTheMean(distanceBetweenMeasuredPositionAndEstimatedPosition, this.averageDistanceBetweenMeasuredPositionAndEstimatedPosition, this.distanceBetweenMeasuredPositionAndEstimatedPositionStandardDeviation); 
     
     float[] adjustedConfidenceParameters = adjustConfidenceParametersByAlphaMultiplier(confidenceParameters, measuredPositionConfidence);
-    if(this.jointId!=1){ // If this joint has parentBone
-      adjustedConfidenceParameters = adjustConfidenceParametersByAlphaMultiplier(adjustedConfidenceParameters, this.parentBone.measuredLengthConfidence);
-    }
     
-    if(jointId == 1){ // SpineMid
+    if(this.id == 1){ // SpineMid
       newEstimatedPosition = PVector.lerp(PVector.add(this.estimatedPosition, PVector.mult(this.estimatedVelocity, this.skeleton.dampingFactor*this.skeleton.scene.currentDeltaT)), this.measuredPosition, adjustedConfidenceParameters[0]);
     } 
     else{ // Common Joints
+      adjustedConfidenceParameters = adjustConfidenceParametersByAlphaMultiplier(adjustedConfidenceParameters, this.parentBone.measuredLengthConfidence);
       newEstimatedPosition = PVector.add(this.estimatedPosition, PVector.mult(this.estimatedVelocity, this.skeleton.dampingFactor*this.skeleton.scene.currentDeltaT)).mult(adjustedConfidenceParameters[1])
                                             .add(PVector.add(this.parentJoint.estimatedPosition, PVector.mult(this.parentBone.currentEstimatedDirection, this.parentBone.estimatedLength)).mult(adjustedConfidenceParameters[2]))
                                             .add(PVector.mult(this.measuredPosition, adjustedConfidenceParameters[0]));
@@ -127,7 +124,7 @@ public class Joint{
     this.estimatedVelocity = newEstimatedVelocity;
     this.estimatedPosition = newEstimatedPosition;
 /*
-    if(this.jointId == FOOT_LEFT){
+    if(this.id == FOOT_LEFT){
       println("LeftFoot accel: "+this.estimatedAcceleration.mag());
       println("LeftFoot velocity: "+this.estimatedVelocity.mag());
     }*/
@@ -248,9 +245,9 @@ public class Joint{
       fill(color(0,0,0,170));
     }
     pushMatrix();
-    translate(reScaleX(this.estimatedPosition.x),
-              reScaleY(this.estimatedPosition.y),
-              reScaleZ(this.estimatedPosition.z));
+    translate(reScaleX(this.estimatedPosition.x, "joint.drawPosition"),
+              reScaleY(this.estimatedPosition.y, "joint.drawPosition"),
+              reScaleZ(this.estimatedPosition.z, "joint.drawPosition"));
     sphere(3);
     popMatrix();
   }
@@ -264,7 +261,7 @@ public class Joint{
   public void drawOrientation(boolean drawEstimated, boolean drawMeasured){ // X:Red, Y:Green, Z:Blue
     float size = 15;
     pushMatrix();
-    translate(reScaleX(this.estimatedPosition.x), reScaleY(this.estimatedPosition.y), reScaleZ(this.estimatedPosition.z));
+    translate(reScaleX(this.estimatedPosition.x, "joint.drawOrientation"), reScaleY(this.estimatedPosition.y, "joint.drawOrientation"), reScaleZ(this.estimatedPosition.z, "joint.drawOrientation"));
     if(drawEstimated){
       strokeWeight(5);
       stroke(255, 0, 0, 170);

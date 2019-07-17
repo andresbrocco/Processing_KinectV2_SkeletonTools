@@ -2,6 +2,8 @@
   ToDo: JavaDoc
 */
 boolean drawSkeletonTool = true;
+String userTextInput = "";
+boolean gettingUserTextInput = false;
 Scene scene = new Scene();
 
 int pdPort = 12000;
@@ -11,14 +13,14 @@ Communication communication = new Communication("192.168.15.16", pdPort, myPort)
 void setup()
 {
   frameRate(scene.frameRate_);
-  size(650, 650, P3D);
+  size(500, 500, P3D);
   scene.init();
 }
 
 void draw()
 {
   for(Skeleton skeleton:scene.activeSkeletons.values()){ //example of consulting feature
-    //println("distanceBetweenHands: "+ skeleton.features.distanceBetweenHands);
+    //println("distanceBetweenHands: "+ skeleton.distanceBetweenHands);
   }
   
   scene.update();
@@ -29,17 +31,33 @@ void draw()
     // Your animation algorithm should be placed here
     background(color(0));
   }
-  communication.sendScene(scene);
+  //communication.sendScene(scene);
 }
 
 void keyPressed(){
-  if(key == 'f') scene.floor.manageCalibration();
-  if(key == 's') scene.drawScene = !scene.drawScene;
-  if(key == 'm') scene.drawMeasured = !scene.drawMeasured;
-  if(key == 'b') scene.drawBoneRelativeOrientation = !scene.drawBoneRelativeOrientation;
-  if(key == 'j') scene.drawJointOrientation = !scene.drawJointOrientation;
-  if(key == 'h') scene.drawHandRadius = !scene.drawHandRadius;
-  if(key == 'H') scene.drawHandStates = !scene.drawHandStates;
+  if(gettingUserTextInput){
+    if (keyCode == BACKSPACE) {
+      if (userTextInput.length() > 0) {
+        userTextInput = userTextInput.substring(0, userTextInput.length()-1);
+        println(userTextInput);
+      }
+    } else if (keyCode == DELETE) {
+      userTextInput = "";
+    } else if (keyCode == RETURN || keyCode == ENTER){
+      gettingUserTextInput = false;
+    } else if (keyCode != SHIFT && keyCode != CONTROL && keyCode != ALT) {
+      userTextInput = userTextInput + key;
+      println(userTextInput);
+    }
+  } else{
+    if(key == 'f') scene.floor.manageCalibration();
+    if(key == 's') scene.drawScene = !scene.drawScene;
+    if(key == 'm') scene.drawMeasured = !scene.drawMeasured;
+    if(key == 'b') scene.drawBoneRelativeOrientation = !scene.drawBoneRelativeOrientation;
+    if(key == 'j') scene.drawJointOrientation = !scene.drawJointOrientation;
+    if(key == 'h') scene.drawHandRadius = !scene.drawHandRadius;
+    if(key == 'H') scene.drawHandStates = !scene.drawHandStates;
+  }
 }
 
 void mouseDragged() {

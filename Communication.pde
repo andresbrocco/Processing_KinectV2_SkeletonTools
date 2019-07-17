@@ -24,10 +24,10 @@ public class Communication{
   
   private void sendSteeringWheel(Skeleton skeleton){
     OscMessage messageToVideoSphere = new OscMessage("/steeringWheelRollStep:");
-    messageToVideoSphere.add(skeleton.features.steeringWheel.rollStep);
+    messageToVideoSphere.add(skeleton.steeringWheel.rollStep);
     this.oscP5.send(messageToVideoSphere, pdAddress);
     messageToVideoSphere = new OscMessage("/steeringWheelPitchStep:");
-    messageToVideoSphere.add(skeleton.features.steeringWheel.pitchStep);
+    messageToVideoSphere.add(skeleton.steeringWheel.pitchStep);
     this.oscP5.send(messageToVideoSphere, pdAddress);
   }
   
@@ -78,7 +78,7 @@ public class Communication{
     OscMessage messageToPd = new OscMessage("/Ready");  
     this.oscP5.send(messageToPd, pdAddress);
     messageToPd = new OscMessage("/Elastic");
-    messageToPd.add((skeleton.features.distanceBetweenHands));
+    messageToPd.add((skeleton.distanceBetweenHands));
     this.oscP5.send(messageToPd,pdAddress);
   }
 }
