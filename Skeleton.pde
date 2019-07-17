@@ -1,4 +1,4 @@
-/** //<>// //<>// //<>//
+/** //<>// //<>// //<>// //<>//
  * A skeleton contains all the information related to a specific body. It also contains the algorithms to smooth its movement and draw itself on screen.
  */
 public class Skeleton{
