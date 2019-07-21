@@ -96,6 +96,21 @@ void drawPie3D(PVector v1, PVector v2, float size){
   endShape(CLOSE);
 }
 
+/**
+ * Auxiliar function to call the vertex function with a PVector.
+ * @param vertex PVector.
+ * @param whoCalledMe string for debbugging.
+ */
 void vertex(PVector vertex, String whoCalledMe){
   vertex(reScaleX(vertex.x, whoCalledMe), reScaleY(vertex.y, whoCalledMe), reScaleZ(vertex.z, whoCalledMe));
+}
+
+/**
+ * Return the signal of a float (-1 or 1).
+ * @param x value to get the signal from.
+ * @return sign(x) the signal of x.
+ */
+int sign(float x){
+  if(x<0) return -1;
+  else return 1;
 }

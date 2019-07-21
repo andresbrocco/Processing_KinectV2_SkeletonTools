@@ -54,6 +54,8 @@ public class Skeleton{
   public float distanceBetweenHands;
   public Pollock leftHandPollock;
   public Pollock rightHandPollock;
+  public RondDuBras leftHandRondDuBras;
+  public RondDuBras rightHandRondDuBras;
                       
   public Skeleton(KSkeleton kSkeleton, Scene scene){
     this.scene = scene;
@@ -80,6 +82,8 @@ public class Skeleton{
     }
     this.leftHandPollock = new Pollock(this, "LEFT");
     this.rightHandPollock = new Pollock(this, "RIGHT");
+    this.leftHandRondDuBras = new RondDuBras(this, "LEFT");
+    this.rightHandRondDuBras = new RondDuBras(this, "RIGHT");
     this.appearedLastInFrame = frameCount;
   }
   
@@ -99,6 +103,8 @@ public class Skeleton{
     this.smoothSkeleton();
     this.leftHandPollock.update();
     this.rightHandPollock.update();
+    this.leftHandRondDuBras.update();
+    this.rightHandRondDuBras.update();
     this.appearedLastInFrame = frameCount;
   }
   
@@ -173,7 +179,7 @@ public class Skeleton{
  * @param drawHandRadius indicates if hand radius' should be drawn.
  * @param drawHandStates indicates if raw hand states should be drawn.
  */
-  public void draw(boolean drawMeasured, boolean drawJointOrientation, boolean drawBoneRelativeOrientation,  boolean drawHandRadius, boolean drawHandStates, boolean drawPollock){
+  public void draw(boolean drawMeasured, boolean drawJointOrientation, boolean drawBoneRelativeOrientation,  boolean drawHandRadius, boolean drawHandStates, boolean drawPollock, boolean drawRondDuBras){
     for(Bone bone:this.bones)    bone.draw(drawMeasured, drawBoneRelativeOrientation);
     for(Joint joint:this.joints) joint.draw(drawMeasured, drawJointOrientation);
     if(drawHandRadius)           this.drawHandRadius();
@@ -181,6 +187,10 @@ public class Skeleton{
     if(drawPollock){
       this.leftHandPollock.draw(true, true, true);
       this.rightHandPollock.draw(true, true, true);
+    }
+    if(drawRondDuBras){
+      this.leftHandRondDuBras.draw(true, true);
+      this.rightHandRondDuBras.draw(true, true);
     }
     // Both below shall be deleted
     // testing relative position to the floor coordinate system:

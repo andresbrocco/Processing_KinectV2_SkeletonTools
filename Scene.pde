@@ -25,7 +25,8 @@ public class Scene{
   public boolean drawJointOrientation = false;
   public boolean drawHandRadius = false;
   public boolean drawHandStates = false;
-  public boolean drawPollock = true;
+  public boolean drawPollock = false;
+  public boolean drawRondDuBras = true;
   
   public Scene(){
     this.currentDeltaT = 1/this.frameRate_; 
@@ -85,7 +86,7 @@ public class Scene{
     this.setCamera();
     if(!this.activeSkeletons.isEmpty()){
       for (Skeleton skeleton:this.activeSkeletons.values()) {
-        skeleton.draw(this.drawMeasured, this.drawJointOrientation, this.drawBoneRelativeOrientation, this.drawHandRadius, this.drawHandStates, this.drawPollock);
+        skeleton.draw(this.drawMeasured, this.drawJointOrientation, this.drawBoneRelativeOrientation, this.drawHandRadius, this.drawHandStates, this.drawPollock, this.drawRondDuBras);
       }
     }
     this.drawKinectFieldOfView();

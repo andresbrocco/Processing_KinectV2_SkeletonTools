@@ -7,9 +7,9 @@ public class Pollock{
   private final float altitudeDiscretization = PI/(this.numberOfAltitudes+1); // azimuth discretization (in radians)
   private final int numberOfAzimuths = 4; // max: 9
   private final float azimuthDiscretization = TWO_PI/this.numberOfAzimuths; // azimuth discretization (in radians)
-  private final int forwardIsBetweenPossibleDirections = 1; // 1:forward is between possible directions. 0:forward is a possible direction.
+  private final int forwardIsBetweenPossibleDirections = 0; // 1:forward is between possible directions. 0:forward is a possible direction.
   private int fadeOutTime = 1000; // millisseconds
-  String whichHand; // LEFT or RIGHT
+  private String whichHand; // LEFT or RIGHT
   private Joint handJoint;
   private Joint shoulderJoint;
   private Joint headJoint;
@@ -30,12 +30,15 @@ public class Pollock{
   
   Pollock(Skeleton skeleton, String whichHand){
     this.whichHand = whichHand;
-    if(whichHand == "LEFT"){
-      this.handJoint = skeleton.joints[HAND_LEFT];
-      this.shoulderJoint = skeleton.joints[SHOULDER_LEFT];
-    }else if(whichHand == "RIGHT"){
-      this.handJoint = skeleton.joints[HAND_RIGHT];
-      this.shoulderJoint = skeleton.joints[SHOULDER_RIGHT];
+    switch(this.whichHand){
+      case "LEFT":
+        this.handJoint = skeleton.joints[HAND_LEFT];
+        this.shoulderJoint = skeleton.joints[SHOULDER_LEFT];
+        break;
+      case "RIGHT":
+        this.handJoint = skeleton.joints[HAND_RIGHT];
+        this.shoulderJoint = skeleton.joints[SHOULDER_RIGHT];
+        break;
     }
     this.headJoint = skeleton.joints[HEAD];
     this.spineShoulderJoint = skeleton.joints[SPINE_SHOULDER];
@@ -158,22 +161,17 @@ public class Pollock{
     pushMatrix();
     strokeWeight(5);
     // Draw headToHandDirectionRelativeToShoulder:
-    stroke(0, 0, 0, 128);
+    stroke(0, 0, 0, 255);
     line(0, 0, 0, size*reScaleX(this.headToHandDirectionRelativeToShoulder.x, "pollock.draw"), 
                   size*reScaleY(this.headToHandDirectionRelativeToShoulder.y, "pollock.draw"), 
                   size*reScaleZ(this.headToHandDirectionRelativeToShoulder.z, "pollock.draw"));
     
-    stroke(100, 0, 200, 255);
-    // Draw possibleDirectionActivated:
-    line(0, 0, 0, reScaleX(possibleDirectionActivated.x, "pollock.draw"), 
-                  reScaleY(possibleDirectionActivated.y, "pollock.draw"), 
-                  reScaleZ(possibleDirectionActivated.z, "pollock.draw"));
-    
+    stroke(100, 0, 200, 255);    
     // Draw shell:
     Quaternion azimuthClockwiseRotation =      axisAngleToQuaternion(0, 1, 0, this.azimuthDiscretization/2); // clockwise half rotation
-    Quaternion azimuthAntiClockwiseRotation =  axisAngleToQuaternion(0, 1, 0, -this.azimuthDiscretization/2); // clockwise half rotation
+    Quaternion azimuthAntiClockwiseRotation =  axisAngleToQuaternion(0, 1, 0, -this.azimuthDiscretization/2); // anticlockwise half rotation
     Quaternion altitudeClockwiseRotation =     axisAngleToQuaternion(rotateVector(new PVector(possibleDirectionActivated.x, 0, possibleDirectionActivated.z), new PVector(0, 1, 0), HALF_PI), this.altitudeDiscretization/2); // clockwise half rotation
-    Quaternion altitudeAntiClockwiseRotation = axisAngleToQuaternion(rotateVector(new PVector(possibleDirectionActivated.x, 0, possibleDirectionActivated.z), new PVector(0, 1, 0), HALF_PI), -this.altitudeDiscretization/2); // clockwise half rotation
+    Quaternion altitudeAntiClockwiseRotation = axisAngleToQuaternion(rotateVector(new PVector(possibleDirectionActivated.x, 0, possibleDirectionActivated.z), new PVector(0, 1, 0), HALF_PI), -this.altitudeDiscretization/2); // anticlockwise half rotation
     
     PVector vertex1 = rotateVector(rotateVector(possibleDirectionActivated, altitudeClockwiseRotation)    , azimuthClockwiseRotation);
     PVector vertex2 = rotateVector(rotateVector(possibleDirectionActivated, altitudeAntiClockwiseRotation), azimuthClockwiseRotation);
@@ -183,10 +181,10 @@ public class Pollock{
     float fadeOutFactor = 1-(float)((millis()-this.activationTime)/(float)this.fadeOutTime);
     fill(100, 0, 200, 255*fadeOutFactor);
     beginShape();
-    vertex(vertex1, "drawActivationDirectionInTheOrigin");
-    vertex(vertex2, "drawActivationDirectionInTheOrigin");
-    vertex(vertex3, "drawActivationDirectionInTheOrigin");
-    vertex(vertex4, "drawActivationDirectionInTheOrigin");
+    vertex(vertex1, "pollock.draw");
+    vertex(vertex2, "pollock.draw");
+    vertex(vertex3, "pollock.draw");
+    vertex(vertex4, "pollock.draw");
     endShape(CLOSE);
     popMatrix();
   }
@@ -218,10 +216,10 @@ public class Pollock{
         PVector vertex4 = rotateVector(rotateVector(directionToDraw, altitudeClockwiseRotation)    , azimuthAntiClockwiseRotation);
         
         beginShape();
-        vertex(vertex1, "drawActivationDirectionInTheOrigin");
-        vertex(vertex2, "drawActivationDirectionInTheOrigin");
-        vertex(vertex3, "drawActivationDirectionInTheOrigin");
-        vertex(vertex4, "drawActivationDirectionInTheOrigin");
+        vertex(vertex1, "pollock.draw");
+        vertex(vertex2, "pollock.draw");
+        vertex(vertex3, "pollock.draw");
+        vertex(vertex4, "pollock.draw");
         endShape(CLOSE);
         popMatrix();
         directionIndex++;
