@@ -331,7 +331,7 @@ class Floor{
   }
   
 /**
- * Converts an orientation from the kinect CSys to the floor CSys.
+ * Converts an orientation from the kinect CSys to the floor CSys. This method was not tested.
  * @param globalOrientation Quaternion orientation relative to the Kinect coordinate system.
  * @return Quaternion orientation relative to the floor coordinate system.
  */

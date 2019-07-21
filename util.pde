@@ -95,3 +95,7 @@ void drawPie3D(PVector v1, PVector v2, float size){
   }
   endShape(CLOSE);
 }
+
+void vertex(PVector vertex, String whoCalledMe){
+  vertex(reScaleX(vertex.x, whoCalledMe), reScaleY(vertex.y, whoCalledMe), reScaleZ(vertex.z, whoCalledMe));
+}

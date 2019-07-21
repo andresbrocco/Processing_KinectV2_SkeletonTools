@@ -152,16 +152,34 @@ float angleBetweenQuaternions(Quaternion q1, Quaternion q2){
 
 /**
  * Convert from axis-angle to Quaternion representation of rotation.
- * @param angle rotation around the unitary vector (x, y, z).
+ * @param angle rotation around the vector (x, y, z).
  * @param x
  * @param y
  * @param z
  * @return quaternion.
  */
-Quaternion axisAngleToQuaternion(float angle, float x, float y, float z){
+Quaternion axisAngleToQuaternion(float x, float y, float z, float angle){
+  return axisAngleToQuaternion(new PVector(x, y, z), angle);
+}
+
+/**
+ * Convert from axis-angle to Quaternion representation of rotation.
+ * @param angle rotation around the axis vector (x, y, z).
+ * @param x
+ * @param y
+ * @param z
+ * @return quaternion.
+ */
+Quaternion axisAngleToQuaternion(PVector axis, float angle){
+  PVector axisNormalized = new PVector(1, 0, 0);
+  if(axis.mag()>0.01){
+    axisNormalized = PVector.div(axis, axis.mag());
+  } else { // avoid errors
+    println("axis magnitude zero in 'axisAngleToQuaternion' call.");
+  }
   Quaternion quaternion = new Quaternion();
   quaternion.real = cos(angle/2);
-  quaternion.vector = (new PVector(x, y, z)).mult(sin(angle/2));
+  quaternion.vector = axisNormalized.mult(sin(angle/2));
   return quaternion;
 }
 
@@ -186,7 +204,7 @@ Quaternion rotationMatrixToQuaternion(Matrix m){
       && (Math.abs(m.get(1, 2)+m.get(2, 1)) < epsilon2)
       && (Math.abs(m.get(0, 0)+m.get(1, 1)+m.get(2, 2)-3) < epsilon2)) {
       // this singularity is identity matrix so angle = 0
-      return axisAngleToQuaternion(0, 1, 0, 0); // zero angle, arbitrary axis
+      return axisAngleToQuaternion(1, 0, 0, 0); // zero angle, arbitrary axis
     }
     // otherwise this singularity is angle = 180
     angle = PI;
@@ -227,7 +245,7 @@ Quaternion rotationMatrixToQuaternion(Matrix m){
         y = (float)yz/z;
       }
     }
-    return axisAngleToQuaternion(angle, x, y, z); // return 180 deg rotation
+    return axisAngleToQuaternion(x, y, z, angle); // return 180 deg rotation
   }
   // as we have reached here there are no singularities so we can handle normally
   double s = Math.sqrt((m.get(2, 1) - m.get(1, 2))*(m.get(2, 1) - m.get(1, 2))
@@ -240,5 +258,22 @@ Quaternion rotationMatrixToQuaternion(Matrix m){
   x = (float) ((m.get(2, 1) - m.get(1, 2))/s);
   y = (float) ((m.get(0, 2) - m.get(2, 0))/s);
   z = (float) ((m.get(1, 0) - m.get(0, 1))/s);
-  return axisAngleToQuaternion(angle, x, y, z);
+  return axisAngleToQuaternion(x, y, z, angle);
+}
+
+/**
+ * Rotate the vectorToBeRotated angle radians around the rotationAxis. 
+ */
+PVector rotateVector(PVector vectorToBeRotated, PVector rotationAxis, float angle){
+  Quaternion rotationQuaternion = axisAngleToQuaternion(rotationAxis, angle);
+  Quaternion quaternionToBeRotated = new Quaternion(0, vectorToBeRotated);
+  return qMult(qConjugate(rotationQuaternion), qMult(quaternionToBeRotated, rotationQuaternion)).vector;
+}
+
+/**
+ * Rotate the vectorToBeRotated using the rotationQuaternion. 
+ */
+PVector rotateVector(PVector vectorToBeRotated, Quaternion rotationQuaternion){
+  Quaternion quaternionToBeRotated = new Quaternion(0, vectorToBeRotated);
+  return qMult(qConjugate(rotationQuaternion), qMult(quaternionToBeRotated, rotationQuaternion)).vector;
 }
