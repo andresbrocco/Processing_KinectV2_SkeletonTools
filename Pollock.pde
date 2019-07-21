@@ -2,7 +2,14 @@
  * Pollock: Trigger Affordance that quantifies the "throwing" movement of each hand.
  */
 public class Pollock{
-  String whichHand;
+  private final float speedThreshold = 0.75;
+  private final int numberOfAltitudes = 3; // max: 9
+  private final float altitudeDiscretization = PI/(this.numberOfAltitudes+1); // azimuth discretization (in radians)
+  private final int numberOfAzimuths = 4; // max: 9
+  private final float azimuthDiscretization = TWO_PI/this.numberOfAzimuths; // azimuth discretization (in radians)
+  private final int forwardIsBetweenPossibleDirections = 1; // 1:forward is between possible directions. 0:forward is a possible direction.
+  private int fadeOutTime = 1000; // millisseconds
+  String whichHand; // LEFT or RIGHT
   private Joint handJoint;
   private Joint shoulderJoint;
   private Joint headJoint;
@@ -11,25 +18,15 @@ public class Pollock{
   private PVector shoulderToHandDirection; // Normalized shoulderToHandPosition
   private PVector shoulderToHandVelocity = new PVector(0, 0, 0);
   private float shoulderToHandSpeed = 0;
-  private final float speedThreshold = 0.75;
-  private boolean wasAboveSpeedThreshold = false;
-  private boolean isAboveSpeedThreshold = false;
-  private int activationMillis;
-  private int fadeOutTime = 1000; // millisseconds
-  private PVector headToHand;
-  private PVector activationDirectionGlobal; // vector from head to hand normalized.
-  private PVector activationDirectionRelativeToBody; // vector from head to hand normalized, relative to shoulder coordinate system.
-  private final int numberOfAltitudes = 3; // max: 9
-  private final int numberOfAzimuths = 4; // max: 9
-  private final float azimuthDiscretization = TWO_PI/this.numberOfAzimuths; // azimuth discretization (in radians)
-  private final float altitudeDiscretization = PI/(this.numberOfAltitudes+1); // azimuth discretization (in radians)
-  private final int forwardIsBetweenPossibleDirections = 1; // 1:forward is between possible directions. 0:forward is a possible direction.
-  private Matrix possibleDirections = new Matrix(numberOfAltitudes*numberOfAzimuths, 3);
-  private Matrix projectionInEachPossibleDirectionVector = new Matrix(numberOfAltitudes*numberOfAzimuths, 1);
+  private boolean shoulderToHandSpeedWasAboveThreshold = false;
+  private boolean shoulderToHandSpeedIsAboveThreshold = false;
+  private Matrix possibleDirectionsMatrix = new Matrix(numberOfAltitudes*numberOfAzimuths, 3);
+  private PVector headToHandPosition;
+  private PVector headToHandDirection; // vector from head to hand normalized.
+  private PVector headToHandDirectionRelativeToShoulder; // vector from head to hand normalized, relative to shoulder coordinate system.
+  private int activationTime; // millisseconds
   private int activationDirectionIndex = 0;
   private int activationDirectionCode; // dozen: azimuth. unit: altitude.
-  private int activationDirectionAltitude;
-  private int activationDirectionAzimuth;
   
   Pollock(Skeleton skeleton, String whichHand){
     this.whichHand = whichHand;
@@ -42,19 +39,19 @@ public class Pollock{
     }
     this.headJoint = skeleton.joints[HEAD];
     this.spineShoulderJoint = skeleton.joints[SPINE_SHOULDER];
-    this.buildPossibleDirections();
+    this.buildPossibleDirectionsMatrix();
   }
   
   /**
    * Build a Matrix containing the vectors for all possible directions of the pollock, based on the chosen number of azimuths and altitudes.
    */
-  private void buildPossibleDirections(){
+  private void buildPossibleDirectionsMatrix(){
     int directionIndex = 0;
     for(int altitudeIndex=0; altitudeIndex<this.numberOfAltitudes; altitudeIndex++){
       for(int azimuthIndex=0; azimuthIndex<this.numberOfAzimuths; azimuthIndex++){
-        this.possibleDirections.set(directionIndex, 0, sin((altitudeIndex+1)*this.altitudeDiscretization)*sin((azimuthIndex+((float)forwardIsBetweenPossibleDirections)/2)*this.azimuthDiscretization));
-        this.possibleDirections.set(directionIndex, 1, cos((altitudeIndex+1)*this.altitudeDiscretization));
-        this.possibleDirections.set(directionIndex, 2, sin((altitudeIndex+1)*this.altitudeDiscretization)*cos((azimuthIndex+((float)forwardIsBetweenPossibleDirections)/2)*this.azimuthDiscretization));
+        this.possibleDirectionsMatrix.set(directionIndex, 0, sin((altitudeIndex+1)*this.altitudeDiscretization)*sin((azimuthIndex+((float)forwardIsBetweenPossibleDirections)/2)*this.azimuthDiscretization));
+        this.possibleDirectionsMatrix.set(directionIndex, 1, cos((altitudeIndex+1)*this.altitudeDiscretization));
+        this.possibleDirectionsMatrix.set(directionIndex, 2, sin((altitudeIndex+1)*this.altitudeDiscretization)*cos((azimuthIndex+((float)forwardIsBetweenPossibleDirections)/2)*this.azimuthDiscretization));
         directionIndex++;
       }
     }
@@ -68,57 +65,53 @@ public class Pollock{
     this.shoulderToHandDirection = PVector.div(this.shoulderToHandPosition, this.shoulderToHandPosition.mag());
     this.shoulderToHandVelocity = PVector.sub(this.handJoint.estimatedVelocity, this.shoulderJoint.estimatedVelocity);
     this.shoulderToHandSpeed = PVector.dot(this.shoulderToHandVelocity, this.shoulderToHandDirection);
-    this.isAboveSpeedThreshold = this.shoulderToHandSpeed > this.speedThreshold;
+    this.shoulderToHandSpeedIsAboveThreshold = this.shoulderToHandSpeed > this.speedThreshold;
     
-    if(this.isAboveSpeedThreshold){
-      this.headToHand = PVector.sub(this.handJoint.estimatedPosition, this.headJoint.estimatedPosition);
-    } else if(this.wasAboveSpeedThreshold){ // Pollock is activated here
-      this.activationMillis = millis();
+    if(this.shoulderToHandSpeedIsAboveThreshold){
+      this.headToHandPosition = PVector.sub(this.handJoint.estimatedPosition, this.headJoint.estimatedPosition);
+    } else if(this.shoulderToHandSpeedWasAboveThreshold){ // Pollock is activated here
+      this.activationTime = millis();
       this.findDirection();
     }
-    this.wasAboveSpeedThreshold = this.isAboveSpeedThreshold;
+    this.shoulderToHandSpeedWasAboveThreshold = this.shoulderToHandSpeedIsAboveThreshold;
   }
   
   /**
    * Find the possible direction that has the largest dot product with the activation direction.   
    */
   private void findDirection(){
-    this.activationDirectionGlobal = PVector.div(this.headToHand, headToHand.mag());
-    this.activationDirectionRelativeToBody = new PVector(PVector.dot(this.activationDirectionGlobal, this.spineShoulderJoint.estimatedDirectionX), 
-                                                         PVector.dot(this.activationDirectionGlobal, this.spineShoulderJoint.estimatedDirectionY), 
-                                                         PVector.dot(this.activationDirectionGlobal, this.spineShoulderJoint.estimatedDirectionZ));
-    Matrix activationDirectionRelativeToBodyVector = new Matrix(new double[] {this.activationDirectionRelativeToBody.x, this.activationDirectionRelativeToBody.y, this.activationDirectionRelativeToBody.z}, 3);
-    this.projectionInEachPossibleDirectionVector = this.possibleDirections.times(activationDirectionRelativeToBodyVector);
+    this.headToHandDirection = PVector.div(this.headToHandPosition, headToHandPosition.mag());
+    this.headToHandDirectionRelativeToShoulder = new PVector(PVector.dot(this.headToHandDirection, this.spineShoulderJoint.estimatedDirectionX), 
+                                                             PVector.dot(this.headToHandDirection, this.spineShoulderJoint.estimatedDirectionY), 
+                                                             PVector.dot(this.headToHandDirection, this.spineShoulderJoint.estimatedDirectionZ));
+    Matrix headToHandDirectionRelativeToShoulderVector = new Matrix(new double[] {this.headToHandDirectionRelativeToShoulder.x, 
+                                                                                  this.headToHandDirectionRelativeToShoulder.y, 
+                                                                                  this.headToHandDirectionRelativeToShoulder.z}, 3);
+    Matrix projectionInEachPossibleDirectionVector = this.possibleDirectionsMatrix.times(headToHandDirectionRelativeToShoulderVector);
     double max = 0;
     int possibleDirectionIndex = 0;
     for(int possibleDirectionAltitude=0; possibleDirectionAltitude<this.numberOfAltitudes; possibleDirectionAltitude++){
       for(int possibleDirectionAzimuth=0; possibleDirectionAzimuth<this.numberOfAzimuths; possibleDirectionAzimuth++){
-        if(this.projectionInEachPossibleDirectionVector.get(possibleDirectionIndex, 0) > max){
-          this.activationDirectionAltitude = possibleDirectionAltitude;
-          this.activationDirectionAzimuth = possibleDirectionAzimuth;
+        if(projectionInEachPossibleDirectionVector.get(possibleDirectionIndex, 0) > max){
           this.activationDirectionIndex = possibleDirectionIndex;
-          this.activationDirectionCode = this.activationDirectionAzimuth*10 + this.activationDirectionAltitude;
-          max = this.projectionInEachPossibleDirectionVector.get(possibleDirectionIndex, 0);
+          this.activationDirectionCode = possibleDirectionAzimuth*10 + possibleDirectionAltitude;
+          max = projectionInEachPossibleDirectionVector.get(possibleDirectionIndex, 0);
         }
         possibleDirectionIndex++;
       }
     }
-    println("pollockCode: "+this.activationDirectionCode);
+    println("pollockCode: " + this.activationDirectionCode);
   }
   
   /**
    * Draw the representations of the pollock affordance.
    */
-  private void draw(){
-    //this.drawTriggerVector();
-    //this.drawPossibleDirectionsInTheBody();
-    this.drawPossibleDirectionsInTheOrigin();
-    
-    if(millis()-this.activationMillis < this.fadeOutTime){
-      this.drawHeadToHandVector();
-      //this.drawProjectionsInPossibleDirectionsInTheOrigin();
-      //this.drawHeadToHandVectorInTheOrigin();
-      this.drawActivationDirectionInTheOrigin();
+  private void draw(boolean drawTriggerVector, boolean drawPossibleDirectionsInTheOrigin, boolean drawHeadToHandPosition){
+    if(drawTriggerVector) this.drawTriggerVector();
+    if(drawPossibleDirectionsInTheOrigin) this.drawPossibleDirectionsInTheOrigin(0.5);
+    if(millis()-this.activationTime < this.fadeOutTime){
+      if(drawHeadToHandPosition) this.drawHeadToHandPosition();
+      this.drawActivationDirectionInTheOrigin(0.5);
     }
   }
   
@@ -133,51 +126,48 @@ public class Pollock{
               reScaleY(this.shoulderJoint.estimatedPosition.y, "pollock.draw"),
               reScaleZ(this.shoulderJoint.estimatedPosition.z, "pollock.draw"));
     PVector shoulderToHand = PVector.sub(this.handJoint.estimatedPosition, this.shoulderJoint.estimatedPosition);
-    line(0, 0, 0, reScaleX(shoulderToHand.x, "pollock.draw"), reScaleY(shoulderToHand.y, "pollock.draw"), reScaleZ(shoulderToHand.z, "pollock.draw"));
+    line(0, 0, 0, reScaleX(shoulderToHand.x, "pollock.draw"), 
+                  reScaleY(shoulderToHand.y, "pollock.draw"), 
+                  reScaleZ(shoulderToHand.z, "pollock.draw"));
     popMatrix();
   }
   
   /**
    * Draw the vector from head to hand, which is the direction of the activation.
    */
-  private void drawHeadToHandVector(){
+  private void drawHeadToHandPosition(){
     pushMatrix();
     strokeWeight(5);
     stroke(0, 0, 0, 128);
     translate(reScaleX(this.headJoint.estimatedPosition.x, "pollock.draw"),
               reScaleY(this.headJoint.estimatedPosition.y, "pollock.draw"),
               reScaleZ(this.headJoint.estimatedPosition.z, "pollock.draw")); 
-    line(0, 0, 0, reScaleX(this.headToHand.x, "pollock.draw"), reScaleY(this.headToHand.y, "pollock.draw"), reScaleZ(this.headToHand.z, "pollock.draw"));
-    popMatrix();
-  }
-  
-  /**
-   * Draw the vector from head to hand in the origin, which is the direction of the activation in global CSys.
-   */
-  private void drawHeadToHandVectorInTheOrigin(){
-    pushMatrix();
-    strokeWeight(5);
-    stroke(0, 0, 0, 128);
-    line(0, 0, 0, reScaleX(this.headToHand.x, "pollock.draw"), reScaleY(this.headToHand.y, "pollock.draw"), reScaleZ(this.headToHand.z, "pollock.draw"));
+    line(0, 0, 0, reScaleX(this.headToHandPosition.x, "pollock.draw"), 
+                  reScaleY(this.headToHandPosition.y, "pollock.draw"), 
+                  reScaleZ(this.headToHandPosition.z, "pollock.draw"));
     popMatrix();
   }
   
   /**
    * Draw the activated possible direction in the origin.
    */
-  private void drawActivationDirectionInTheOrigin(){
-    PVector possibleDirectionActivated = new PVector((float)this.possibleDirections.get(this.activationDirectionIndex, 0), 
-                                                     (float)this.possibleDirections.get(this.activationDirectionIndex, 1), 
-                                                     (float)this.possibleDirections.get(this.activationDirectionIndex, 2));
+  private void drawActivationDirectionInTheOrigin(float size){
+    PVector possibleDirectionActivated = (new PVector((float)this.possibleDirectionsMatrix.get(this.activationDirectionIndex, 0), 
+                                                      (float)this.possibleDirectionsMatrix.get(this.activationDirectionIndex, 1), 
+                                                      (float)this.possibleDirectionsMatrix.get(this.activationDirectionIndex, 2))).mult(size);
     pushMatrix();
     strokeWeight(5);
-    // Draw activationDirectionRelativeToBody:
+    // Draw headToHandDirectionRelativeToShoulder:
     stroke(0, 0, 0, 128);
-    line(0, 0, 0, reScaleX(this.activationDirectionRelativeToBody.x, "pollock.draw"), reScaleY(this.activationDirectionRelativeToBody.y, "pollock.draw"), reScaleZ(this.activationDirectionRelativeToBody.z, "pollock.draw"));
+    line(0, 0, 0, size*reScaleX(this.headToHandDirectionRelativeToShoulder.x, "pollock.draw"), 
+                  size*reScaleY(this.headToHandDirectionRelativeToShoulder.y, "pollock.draw"), 
+                  size*reScaleZ(this.headToHandDirectionRelativeToShoulder.z, "pollock.draw"));
     
     stroke(100, 0, 200, 255);
     // Draw possibleDirectionActivated:
-    line(0, 0, 0, reScaleX(possibleDirectionActivated.x, "pollock.draw"), reScaleY(possibleDirectionActivated.y, "pollock.draw"), reScaleZ(possibleDirectionActivated.z, "pollock.draw"));
+    line(0, 0, 0, reScaleX(possibleDirectionActivated.x, "pollock.draw"), 
+                  reScaleY(possibleDirectionActivated.y, "pollock.draw"), 
+                  reScaleZ(possibleDirectionActivated.z, "pollock.draw"));
     
     // Draw shell:
     Quaternion azimuthClockwiseRotation =      axisAngleToQuaternion(0, 1, 0, this.azimuthDiscretization/2); // clockwise half rotation
@@ -190,7 +180,8 @@ public class Pollock{
     PVector vertex3 = rotateVector(rotateVector(possibleDirectionActivated, altitudeAntiClockwiseRotation), azimuthAntiClockwiseRotation);
     PVector vertex4 = rotateVector(rotateVector(possibleDirectionActivated, altitudeClockwiseRotation)    , azimuthAntiClockwiseRotation);
     
-    fill(100, 0, 200, 255*(1-(float)((millis()-this.activationMillis)/(float)this.fadeOutTime)));
+    float fadeOutFactor = 1-(float)((millis()-this.activationTime)/(float)this.fadeOutTime);
+    fill(100, 0, 200, 255*fadeOutFactor);
     beginShape();
     vertex(vertex1, "drawActivationDirectionInTheOrigin");
     vertex(vertex2, "drawActivationDirectionInTheOrigin");
@@ -201,31 +192,9 @@ public class Pollock{
   }
   
   /**
-   * Draw the possible directions in the origin, with its alpha representing the projection of the activated direction.
-   */
-  private void drawProjectionsInPossibleDirectionsInTheOrigin(){
-    int directionIndex = 0;
-    for(int altitudeIndex=0; altitudeIndex<this.numberOfAltitudes; altitudeIndex++){
-      for(int azimuthIndex=0; azimuthIndex<this.numberOfAzimuths; azimuthIndex++){
-        pushMatrix();
-        strokeWeight(5);
-        float colorIntensity = max(0, map((float)projectionInEachPossibleDirectionVector.get(directionIndex, 0), 0, 1, 0, 255));
-        //println("color intensity: "+ colorIntensity);
-        stroke(100, 0, 200, colorIntensity);
-        PVector directionToDraw = new PVector((float) this.possibleDirections.get(directionIndex, 0), (float) this.possibleDirections.get(directionIndex, 1), (float) this.possibleDirections.get(directionIndex, 2));
-        line(0, 0, 0, reScaleX(directionToDraw.x, "pollock.draw"),
-                      reScaleY(directionToDraw.y, "pollock.draw"),
-                      reScaleZ(directionToDraw.z, "pollock.draw"));
-        directionIndex++;
-        popMatrix();
-      }
-    }
-  }
-  
-  /**
    * Draw the possible directions in the origin.
    */
-  private void drawPossibleDirectionsInTheOrigin(){
+  private void drawPossibleDirectionsInTheOrigin(float size){
     int directionIndex = 0;
     for(int altitudeIndex=0; altitudeIndex<this.numberOfAltitudes; altitudeIndex++){
       for(int azimuthIndex=0; azimuthIndex<this.numberOfAzimuths; azimuthIndex++){
@@ -233,9 +202,9 @@ public class Pollock{
         strokeWeight(2);
         stroke(0, 0, 0, 40);
         noFill();
-        PVector directionToDraw = new PVector((float) this.possibleDirections.get(directionIndex, 0), 
-                                              (float) this.possibleDirections.get(directionIndex, 1), 
-                                              (float) this.possibleDirections.get(directionIndex, 2));
+        PVector directionToDraw = (new PVector((float) this.possibleDirectionsMatrix.get(directionIndex, 0), 
+                                               (float) this.possibleDirectionsMatrix.get(directionIndex, 1), 
+                                               (float) this.possibleDirectionsMatrix.get(directionIndex, 2))).mult(size);
         
         // Draw shell:
         Quaternion azimuthClockwiseRotation =      axisAngleToQuaternion(0, 1, 0, this.azimuthDiscretization/2); // clockwise half rotation
@@ -256,31 +225,6 @@ public class Pollock{
         endShape(CLOSE);
         popMatrix();
         directionIndex++;
-      }
-    }
-  }
-  
-  /**
-   * Draw the possible directions in the origin.
-   */
-  private void drawPossibleDirectionsInTheBody(){
-    int directionIndex = 0;
-    for(int altitudeIndex=0; altitudeIndex<this.numberOfAltitudes; altitudeIndex++){
-      for(int azimuthIndex=0; azimuthIndex<this.numberOfAzimuths; azimuthIndex++){
-        pushMatrix();
-        strokeWeight(2);
-        stroke(100, 0, 200, 255);
-        translate(reScaleX(this.spineShoulderJoint.estimatedPosition.x, "pollock.draw"),
-                  reScaleY(this.spineShoulderJoint.estimatedPosition.y, "pollock.draw"),
-                  reScaleZ(this.spineShoulderJoint.estimatedPosition.z, "pollock.draw"));
-        PVector directionToDraw = new PVector((float) this.possibleDirections.get(directionIndex, 0), (float) this.possibleDirections.get(directionIndex, 1), (float) this.possibleDirections.get(directionIndex, 2));
-        Quaternion directionToDrawQuaternion = new Quaternion(0, directionToDraw);
-        PVector relativeDirectionToDraw = qMult(qConjugate(this.spineShoulderJoint.estimatedOrientation), qMult(directionToDrawQuaternion, this.spineShoulderJoint.estimatedOrientation)).vector;
-        line(0, 0, 0, reScaleX(-relativeDirectionToDraw.x, "pollock.draw"),// esse sinal de menos é gambiarra
-                      reScaleY(relativeDirectionToDraw.y, "pollock.draw"),
-                      reScaleZ(relativeDirectionToDraw.z, "pollock.draw"));
-        directionIndex++;
-        popMatrix();
       }
     }
   }

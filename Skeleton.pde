@@ -173,21 +173,15 @@ public class Skeleton{
  * @param drawHandRadius indicates if hand radius' should be drawn.
  * @param drawHandStates indicates if raw hand states should be drawn.
  */
-  public void draw(boolean drawMeasured, boolean drawJointOrientation, boolean drawBoneRelativeOrientation,  boolean drawHandRadius, boolean drawHandStates){
-    for(Bone bone:this.bones){
-      bone.draw(drawMeasured, drawBoneRelativeOrientation);
+  public void draw(boolean drawMeasured, boolean drawJointOrientation, boolean drawBoneRelativeOrientation,  boolean drawHandRadius, boolean drawHandStates, boolean drawPollock){
+    for(Bone bone:this.bones)    bone.draw(drawMeasured, drawBoneRelativeOrientation);
+    for(Joint joint:this.joints) joint.draw(drawMeasured, drawJointOrientation);
+    if(drawHandRadius)           this.drawHandRadius();
+    if(drawHandStates)           this.drawHandStates();
+    if(drawPollock){
+      this.leftHandPollock.draw(true, true, true);
+      this.rightHandPollock.draw(true, true, true);
     }
-    for(Joint joint:this.joints){
-      joint.draw(drawMeasured, drawJointOrientation);
-    }
-    if(drawHandRadius){
-      this.drawHandRadius();
-    }
-    if(drawHandStates){
-      this.drawHandStates();
-    }
-    this.leftHandPollock.draw();
-    this.rightHandPollock.draw();
     // Both below shall be deleted
     // testing relative position to the floor coordinate system:
     //if(this.scene.floor.isCalibrated) this.testingRelativePosition();
