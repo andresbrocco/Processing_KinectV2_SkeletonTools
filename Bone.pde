@@ -128,7 +128,7 @@ public class Bone{
  * Draw a slice of a 3D pie representing its orientation relative to the parent joint.
  */
   public void drawRelativeOrientation(){ // X:Red, Y:Green, Z:Blue
-  float size = 15;
+  float size = 0.25;
     if(!this.childJoint.isEndJoint){
       pushMatrix();
       translate(reScaleX(this.estimatedPosition.x, "bone.drawRelativeOrientation"),

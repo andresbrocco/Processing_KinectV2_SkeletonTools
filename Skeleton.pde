@@ -1,4 +1,4 @@
-/** //<>// //<>// //<>// //<>//
+/**  //<>//
  * A skeleton contains all the information related to a specific body. It also contains the algorithms to smooth its movement and draw itself on screen.
  */
 public class Skeleton{
@@ -47,6 +47,7 @@ public class Skeleton{
                                 {22, HAND_RIGHT, HAND_TIP_RIGHT}, 
                                 {23, WRIST_RIGHT, THUMB_RIGHT}};
   // Skeleton Features:
+  public float bodySize; // Sum of lengths of all bones
   public float averageMomentum = 0; // in m/s. In general, above 1 can be considered steady.
   public float headInclination = 0; // head inclination relative to Z axis, in radians
   public float shoulderTension = 0; // SHOULDER height relative to SPINESHOULDER
@@ -101,11 +102,23 @@ public class Skeleton{
       joints[j].receiveNewMeasurements(kJoints[j]);
     }
     this.smoothSkeleton();
+    this.calculateBodySize();
     this.leftHandPollock.update();
     this.rightHandPollock.update();
     this.leftHandRondDuBras.update();
     this.rightHandRondDuBras.update();
     this.appearedLastInFrame = frameCount;
+  }
+  
+/**
+ * Average of lenghts of all bones. This value can be used to normalize feature parameters to adjust for different body sizes.
+ */
+  void calculateBodySize(){
+    this.bodySize = 0;
+    for(Bone bone:this.bones){
+      this.bodySize += bone.estimatedLength;
+    }
+    this.bodySize /= 24;
   }
   
 /**

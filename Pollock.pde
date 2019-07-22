@@ -18,6 +18,7 @@ public class Pollock{
   private PVector shoulderToHandDirection; // Normalized shoulderToHandPosition
   private PVector shoulderToHandVelocity = new PVector(0, 0, 0);
   private float shoulderToHandSpeed = 0;
+  private float shoulderToHandSpeedAdjustedByParalelism = 0;
   private boolean shoulderToHandSpeedWasAboveThreshold = false;
   private boolean shoulderToHandSpeedIsAboveThreshold = false;
   private Matrix possibleDirectionsMatrix = new Matrix(numberOfAltitudes*numberOfAzimuths, 3);
@@ -68,7 +69,10 @@ public class Pollock{
     this.shoulderToHandDirection = PVector.div(this.shoulderToHandPosition, this.shoulderToHandPosition.mag());
     this.shoulderToHandVelocity = PVector.sub(this.handJoint.estimatedVelocity, this.shoulderJoint.estimatedVelocity);
     this.shoulderToHandSpeed = PVector.dot(this.shoulderToHandVelocity, this.shoulderToHandDirection);
-    this.shoulderToHandSpeedIsAboveThreshold = this.shoulderToHandSpeed > this.speedThreshold;
+    float paralelismFactor = abs(this.shoulderToHandSpeed)/this.shoulderToHandVelocity.mag();
+    this.shoulderToHandSpeedAdjustedByParalelism = this.shoulderToHandSpeed*paralelismFactor;
+    println("shoulderToHandSpeedAdjustedByParalelism: "+this.shoulderToHandSpeedAdjustedByParalelism);
+    this.shoulderToHandSpeedIsAboveThreshold = this.shoulderToHandSpeedAdjustedByParalelism > this.speedThreshold;
     
     if(this.shoulderToHandSpeedIsAboveThreshold){
       this.headToHandPosition = PVector.sub(this.handJoint.estimatedPosition, this.headJoint.estimatedPosition);
@@ -103,7 +107,7 @@ public class Pollock{
         possibleDirectionIndex++;
       }
     }
-    println("pollockCode: " + this.activationDirectionCode);
+    //println("pollockCode: " + this.activationDirectionCode);
   }
   
   /**
@@ -124,7 +128,7 @@ public class Pollock{
   private void drawTriggerVector(){
     pushMatrix();
     strokeWeight(5);
-    stroke(0, 0, 0, max(0, min(255, map(this.shoulderToHandSpeed, 0, 2, 0, 255))));
+    stroke(0, 0, 0, max(0, min(255, map(this.shoulderToHandSpeedAdjustedByParalelism, 0, 2, 0, 255))));
     translate(reScaleX(this.shoulderJoint.estimatedPosition.x, "pollock.draw"),
               reScaleY(this.shoulderJoint.estimatedPosition.y, "pollock.draw"),
               reScaleZ(this.shoulderJoint.estimatedPosition.z, "pollock.draw"));

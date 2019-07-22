@@ -91,7 +91,7 @@ void drawPie3D(PVector v1, PVector v2, float size){
   vertex(0,0,0);
   for(int n = 0; n<nOfVertexes; n++){
     PVector auxiliarPVector = slerp(v1, v2, (float)n/ (float)(nOfVertexes-1));
-    vertex(size*auxiliarPVector.x, size*auxiliarPVector.y, size*auxiliarPVector.z);
+    vertex(reScaleX(size*auxiliarPVector.x, "drawPie3D"), reScaleY(size*auxiliarPVector.y, "drawPie3D"), reScaleZ(size*auxiliarPVector.z, "drawPie3D"));
   }
   endShape(CLOSE);
 }

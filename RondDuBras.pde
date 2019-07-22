@@ -1,23 +1,36 @@
 /**
  * RondDuBras: Trigger Affordance that quantifies the "round" movement of each hand.
- * TODO: acertar o metodo para desenhar a face ativada (remover a logica de rotacao com quaternion, e fazer hard-coded)
  */
 public class RondDuBras{
-  private final float crossProductMagnitudeThreshold = 0.75;
+  private final float crossProductMagnitudeThreshold = 0.5;
+  private final float minimumMovementAmplitude = 0.5; // arc length (radians). to be adjusted
+  private final float minimumMovementPrecision = 0.5; // percentage. to be adjusted
   private int fadeOutTime = 1000; // millisseconds
-  String whichHand; // LEFT or RIGHT
+  private String whichHand; // LEFT or RIGHT
   private Joint handJoint;
   private Joint shoulderJoint;
   private Joint spineShoulderJoint;
-  private PVector shoulderToHandPosition;
-  private PVector shoulderToHandVelocity = new PVector(0, 0, 0);
-  private PVector crossProduct = new PVector(0, 0, 0);
+  private PVector[] spineShoulderOrientationWhenCrossedUpTheThreshold = new PVector[3];
+  private PVector[] spineShoulderOrientationWhenCrossedDownTheThreshold = new PVector[3];
+  private PVector[] spineShoulderOrientationWhenActivated = new PVector[3];
+  private PVector currentShoulderToHandPosition;
+  private PVector shoulderToHandPositionWhenCrossedUpTheThreshold;
+  private PVector shoulderToHandPositionWhenCrossedDownTheThreshold;
+  private PVector currentShoulderToHandDirection;
+  private PVector currentShoulderToHandVelocity = new PVector(0, 0, 0);
+  private float   currentShoulderToHandSpeed = 0;
   private PVector currentCrossProduct = new PVector(0, 0, 0);
-  private PVector crossProductDirectionRelativeToShoulder;
-  private boolean crossProductMagnitudeWasAboveThreshold = false;
-  private boolean crossProductMagnitudeIsAboveThreshold = false;
-  private int activationTime; // millisseconds
-  private int activationDirection; // [-3 ~ 3].
+  private float   currentCrossProductMagnitude = 0; // adjusted by perpendicularismFactor
+  private PVector crossProductWhenCrossedUpTheThreshold = new PVector(0, 0, 0);
+  private PVector crossProductWhenCrossedDownTheThreshold = new PVector(0, 0, 0);
+  private PVector crossProductWhenActivated = new PVector(0,0,0);
+  private PVector crossProductDirectionWhenActivatedRelativeToSpineShoulder;
+  private boolean previousCrossProductMagnitudeWasAboveThreshold = false;
+  private boolean currentCrossProductMagnitudeIsAboveThreshold = false;
+  private int timeWhenActivated; // millisseconds
+  private PVector activatedDirection;
+  private PVector[] activatedDirectionSextantVertexes = new PVector[4];
+  private int activatedDirectionCode; // [-3 ~ 3].
   
   RondDuBras(Skeleton skeleton, String whichHand){
     this.whichHand = whichHand;
@@ -38,42 +51,112 @@ public class RondDuBras{
    * Updates the RondDuBras calculations.
    */
   private void update(){
-    this.shoulderToHandPosition = PVector.sub(this.handJoint.estimatedPosition, this.shoulderJoint.estimatedPosition);
-    this.shoulderToHandVelocity = PVector.sub(this.handJoint.estimatedVelocity, this.shoulderJoint.estimatedVelocity);
-    this.currentCrossProduct = this.shoulderToHandPosition.cross(this.shoulderToHandVelocity);
-    this.crossProductMagnitudeIsAboveThreshold = this.currentCrossProduct.mag() > this.crossProductMagnitudeThreshold;
+    this.currentShoulderToHandPosition = PVector.sub(this.handJoint.estimatedPosition, this.shoulderJoint.estimatedPosition);
+    this.currentShoulderToHandDirection = PVector.div(this.currentShoulderToHandPosition, this.currentShoulderToHandPosition.mag());
+    this.currentShoulderToHandVelocity = PVector.sub(this.handJoint.estimatedVelocity, this.shoulderJoint.estimatedVelocity);
+    this.currentShoulderToHandSpeed = PVector.dot(this.currentShoulderToHandVelocity, this.currentShoulderToHandDirection);
+    this.currentCrossProduct = this.currentShoulderToHandPosition.cross(this.currentShoulderToHandVelocity);
+    float perpendicularismFactor = 1-abs(currentShoulderToHandSpeed)/this.currentShoulderToHandVelocity.mag();
+    //println("perpendicularismFactor: " + perpendicularismFactor);
+    this.currentCrossProductMagnitude = this.currentCrossProduct.mag()*perpendicularismFactor;
+    this.currentCrossProductMagnitudeIsAboveThreshold = this.currentCrossProductMagnitude > this.crossProductMagnitudeThreshold;
     println("currentCrossProduct.mag(): " + this.currentCrossProduct.mag());
     
-    if(this.crossProductMagnitudeIsAboveThreshold){
-      this.crossProduct = this.currentCrossProduct;
-    } else if(this.crossProductMagnitudeWasAboveThreshold){ // Pollock is activated here
-      this.activationTime = millis();
-      this.findDirection();
+    if(this.currentCrossProductMagnitudeIsAboveThreshold){
+      if(!this.previousCrossProductMagnitudeWasAboveThreshold){ // Crossed up the threshold.
+        this.shoulderToHandPositionWhenCrossedUpTheThreshold = this.currentShoulderToHandPosition;
+        this.crossProductWhenCrossedUpTheThreshold = this.currentCrossProduct;
+        this.spineShoulderOrientationWhenCrossedUpTheThreshold[0] = this.spineShoulderJoint.estimatedDirectionX;
+        this.spineShoulderOrientationWhenCrossedUpTheThreshold[1] = this.spineShoulderJoint.estimatedDirectionY;
+        this.spineShoulderOrientationWhenCrossedUpTheThreshold[2] = this.spineShoulderJoint.estimatedDirectionZ;
+      }
+    } else if(this.previousCrossProductMagnitudeWasAboveThreshold){ // Crossed down the threshold. 
+      this.shoulderToHandPositionWhenCrossedDownTheThreshold = this.currentShoulderToHandPosition;
+      this.crossProductWhenCrossedDownTheThreshold = this.currentCrossProduct;
+      this.spineShoulderOrientationWhenCrossedDownTheThreshold[0] = this.spineShoulderJoint.estimatedDirectionX;
+      this.spineShoulderOrientationWhenCrossedDownTheThreshold[1] = this.spineShoulderJoint.estimatedDirectionY;
+      this.spineShoulderOrientationWhenCrossedDownTheThreshold[2] = this.spineShoulderJoint.estimatedDirectionZ;
+      
+      float movementAmplitude = PVector.angleBetween(this.shoulderToHandPositionWhenCrossedUpTheThreshold, this.shoulderToHandPositionWhenCrossedDownTheThreshold);
+      println("movementAmplitude: " + movementAmplitude);
+      
+      float movementPrecision = PVector.dot(this.crossProductWhenCrossedUpTheThreshold, this.crossProductWhenCrossedDownTheThreshold);
+      println("movementPrecision: " + movementPrecision);
+      if(movementAmplitude > this.minimumMovementAmplitude && movementPrecision > this.minimumMovementPrecision){ 
+        this.crossProductWhenActivated = slerp(this.crossProductWhenCrossedUpTheThreshold, this.crossProductWhenCrossedDownTheThreshold, 0.5);
+        this.spineShoulderOrientationWhenActivated[0] = slerp(this.spineShoulderOrientationWhenCrossedUpTheThreshold[0], spineShoulderOrientationWhenCrossedDownTheThreshold[0], 0.5);
+        this.spineShoulderOrientationWhenActivated[1] = slerp(this.spineShoulderOrientationWhenCrossedUpTheThreshold[1], spineShoulderOrientationWhenCrossedDownTheThreshold[1], 0.5);
+        this.spineShoulderOrientationWhenActivated[2] = slerp(this.spineShoulderOrientationWhenCrossedUpTheThreshold[2], spineShoulderOrientationWhenCrossedDownTheThreshold[2], 0.5);
+        this.timeWhenActivated = millis();
+        this.findDirection();
+      }
     }
-    this.crossProductMagnitudeWasAboveThreshold = this.crossProductMagnitudeIsAboveThreshold;
+    this.previousCrossProductMagnitudeWasAboveThreshold = this.currentCrossProductMagnitudeIsAboveThreshold;
   }
   
   /**
    * Find the crossProduct greatest direction.   
    */
   private void findDirection(){
-    this.crossProductDirectionRelativeToShoulder = (new PVector(PVector.dot(this.crossProduct, this.spineShoulderJoint.estimatedDirectionX), 
-                                                                PVector.dot(this.crossProduct, this.spineShoulderJoint.estimatedDirectionY), 
-                                                                PVector.dot(this.crossProduct, this.spineShoulderJoint.estimatedDirectionZ))).normalize();
+    this.crossProductDirectionWhenActivatedRelativeToSpineShoulder = (new PVector(PVector.dot(this.crossProductWhenActivated, this.spineShoulderOrientationWhenActivated[0]), 
+                                                                PVector.dot(this.crossProductWhenActivated, this.spineShoulderOrientationWhenActivated[1]), 
+                                                                PVector.dot(this.crossProductWhenActivated, this.spineShoulderOrientationWhenActivated[2]))).normalize();
     float max = 0;
-    if(abs(crossProductDirectionRelativeToShoulder.x) > max) {
-      this.activationDirection = 1*sign(crossProductDirectionRelativeToShoulder.x);
-      max = abs(crossProductDirectionRelativeToShoulder.x);
+    if(crossProductDirectionWhenActivatedRelativeToSpineShoulder.x > max) {
+      this.activatedDirectionCode = 1;
+      this.activatedDirection = new PVector(1,  0,  0);
+      this.activatedDirectionSextantVertexes[0] = new PVector(1, -1, -1);
+      this.activatedDirectionSextantVertexes[1] = new PVector(1, -1,  1);
+      this.activatedDirectionSextantVertexes[2] = new PVector(1,  1,  1);
+      this.activatedDirectionSextantVertexes[3] = new PVector(1,  1, -1);
+      max = crossProductDirectionWhenActivatedRelativeToSpineShoulder.x;
     }
-    if(abs(crossProductDirectionRelativeToShoulder.y) > max) {
-      this.activationDirection = 2*sign(crossProductDirectionRelativeToShoulder.y);
-      max = abs(crossProductDirectionRelativeToShoulder.y);
+    if(-crossProductDirectionWhenActivatedRelativeToSpineShoulder.x > max) {
+      this.activatedDirectionCode = -1;
+      this.activatedDirection = new PVector(-1,  0,  0);
+      this.activatedDirectionSextantVertexes[0] = new PVector(-1, -1, -1);
+      this.activatedDirectionSextantVertexes[1] = new PVector(-1, -1,  1);
+      this.activatedDirectionSextantVertexes[2] = new PVector(-1,  1,  1);
+      this.activatedDirectionSextantVertexes[3] = new PVector(-1,  1, -1);
+      max = crossProductDirectionWhenActivatedRelativeToSpineShoulder.x;
     }
-    if(abs(crossProductDirectionRelativeToShoulder.z) > max) {
-      this.activationDirection = 3*sign(crossProductDirectionRelativeToShoulder.z);
-      max = abs(crossProductDirectionRelativeToShoulder.z);
+    if(crossProductDirectionWhenActivatedRelativeToSpineShoulder.y > max) {
+      this.activatedDirectionCode = 2;
+      this.activatedDirection = new PVector(0,  1,  0);
+      this.activatedDirectionSextantVertexes[0] = new PVector(-1, 1, -1);
+      this.activatedDirectionSextantVertexes[1] = new PVector(-1, 1,  1);
+      this.activatedDirectionSextantVertexes[2] = new PVector( 1, 1,  1);
+      this.activatedDirectionSextantVertexes[3] = new PVector( 1, 1, -1);
+      max = crossProductDirectionWhenActivatedRelativeToSpineShoulder.y;
     }
-    println("RondDuBrasActivationDirection: " + this.activationDirection);
+    if(-crossProductDirectionWhenActivatedRelativeToSpineShoulder.y > max) {
+      this.activatedDirectionCode = -2;
+      this.activatedDirection = new PVector(0, -1,  0);
+      this.activatedDirectionSextantVertexes[0] = new PVector(-1, -1, -1);
+      this.activatedDirectionSextantVertexes[1] = new PVector(-1, -1,  1);
+      this.activatedDirectionSextantVertexes[2] = new PVector( 1, -1,  1);
+      this.activatedDirectionSextantVertexes[3] = new PVector( 1, -1, -1);
+      max = crossProductDirectionWhenActivatedRelativeToSpineShoulder.y;
+    }
+    if(crossProductDirectionWhenActivatedRelativeToSpineShoulder.z > max) {
+      this.activatedDirectionCode = 3;
+      this.activatedDirection = new PVector(0, 0,  1);
+      this.activatedDirectionSextantVertexes[0] = new PVector(-1, -1, 1);
+      this.activatedDirectionSextantVertexes[1] = new PVector(-1,  1, 1);
+      this.activatedDirectionSextantVertexes[2] = new PVector( 1,  1, 1);
+      this.activatedDirectionSextantVertexes[3] = new PVector( 1, -1, 1);
+      max = crossProductDirectionWhenActivatedRelativeToSpineShoulder.z;
+    }
+    if(-crossProductDirectionWhenActivatedRelativeToSpineShoulder.z > max) {
+      this.activatedDirectionCode = -3;
+      this.activatedDirection = new PVector(0, 0, -1);
+      this.activatedDirectionSextantVertexes[0] = new PVector(-1, -1, -1);
+      this.activatedDirectionSextantVertexes[1] = new PVector(-1,  1, -1);
+      this.activatedDirectionSextantVertexes[2] = new PVector( 1,  1, -1);
+      this.activatedDirectionSextantVertexes[3] = new PVector( 1, -1, -1);
+      max = crossProductDirectionWhenActivatedRelativeToSpineShoulder.z;
+    }
+    println("RondDuBrasActivatedDirectionCode: " + this.activatedDirectionCode);
   }
   
   /**
@@ -82,7 +165,7 @@ public class RondDuBras{
   private void draw(boolean drawCurrentCrossProduct, boolean drawPossibleDirectionsInTheOrigin){
     if(drawCurrentCrossProduct) this.drawCurrentCrossProduct(0.5);
     if(drawPossibleDirectionsInTheOrigin) this.drawPossibleDirectionsInTheOrigin(0.5);
-    if(millis()-this.activationTime < this.fadeOutTime) this.drawActivationDirectionInTheOrigin(0.5);
+    if(millis()-this.timeWhenActivated < this.fadeOutTime) this.drawActivatedDirectionInTheOrigin(0.5);
   }
   
   /**
@@ -91,60 +174,52 @@ public class RondDuBras{
   private void drawCurrentCrossProduct(float size){
     pushMatrix();
     strokeWeight(5);
-    stroke(0, 0, 0, 255);
+    stroke(0, 0, 0, 255*min(1, currentCrossProductMagnitude));
+    fill(0, 0, 0, 255*min(1, currentCrossProductMagnitude));
     translate(reScaleX(this.shoulderJoint.estimatedPosition.x, "RondDuBras.draw"),
               reScaleY(this.shoulderJoint.estimatedPosition.y, "RondDuBras.draw"),
               reScaleZ(this.shoulderJoint.estimatedPosition.z, "RondDuBras.draw"));
     line(0, 0, 0, size*reScaleX(this.currentCrossProduct.x, "RondDuBras.draw"), 
                   size*reScaleY(this.currentCrossProduct.y, "RondDuBras.draw"), 
                   size*reScaleZ(this.currentCrossProduct.z, "RondDuBras.draw"));
+    if(this.currentCrossProductMagnitudeIsAboveThreshold){
+      drawPie3D(this.shoulderToHandPositionWhenCrossedUpTheThreshold, this.currentShoulderToHandPosition, size);
+    } else if(millis()-this.timeWhenActivated < this.fadeOutTime){
+      float fadeOutFactor = 1-(float)((millis()-this.timeWhenActivated)/(float)this.fadeOutTime);
+      fill(0, 0, 0, 255*fadeOutFactor);
+      drawPie3D(this.shoulderToHandPositionWhenCrossedUpTheThreshold, this.shoulderToHandPositionWhenCrossedDownTheThreshold, size);
+    }
     popMatrix();
-    println("crossProduct.mag(): " + crossProduct.mag());
   }
   
   /**
    * Draw the activated possible direction in the origin.
    */
-  private void drawActivationDirectionInTheOrigin(float size){
-    PVector directionActivated = new PVector(0, 0, 0);
-         if(this.activationDirection == -3) directionActivated = new PVector( 0,  0, -1);
-    else if(this.activationDirection == -2) directionActivated = new PVector( 0, -1,  0);
-    else if(this.activationDirection == -1) directionActivated = new PVector(-1,  0,  0);
-    else if(this.activationDirection ==  1) directionActivated = new PVector( 1,  0,  0);
-    else if(this.activationDirection ==  2) directionActivated = new PVector( 0,  1,  0);
-    else if(this.activationDirection ==  3) directionActivated = new PVector( 0,  0,  1);
+  private void drawActivatedDirectionInTheOrigin(float size){
     pushMatrix();
     strokeWeight(5);
-    // Draw crossProductRelativeToShoulder:
+    
+    // Draw crossProductDirectionWhenActivatedRelativeToSpineShoulder:
     stroke(0, 0, 0, 128);
-    line(0, 0, 0, size*reScaleX(this.crossProductDirectionRelativeToShoulder.x, "RondDuBras.draw"), 
-                  size*reScaleY(this.crossProductDirectionRelativeToShoulder.y, "RondDuBras.draw"), 
-                  size*reScaleZ(this.crossProductDirectionRelativeToShoulder.z, "RondDuBras.draw"));
+    line(0, 0, 0, size*reScaleX(this.crossProductDirectionWhenActivatedRelativeToSpineShoulder.x, "RondDuBras.draw"), 
+                  size*reScaleY(this.crossProductDirectionWhenActivatedRelativeToSpineShoulder.y, "RondDuBras.draw"), 
+                  size*reScaleZ(this.crossProductDirectionWhenActivatedRelativeToSpineShoulder.z, "RondDuBras.draw"));
     
     stroke(100, 0, 200, 255);
-    // Draw possibleDirectionActivated:
-    line(0, 0, 0, reScaleX(directionActivated.x, "RondDuBras.draw"), 
-                  reScaleY(directionActivated.y, "RondDuBras.draw"), 
-                  reScaleZ(directionActivated.z, "RondDuBras.draw"));
+    
+    // Draw activatedDirection:
+    line(0, 0, 0, reScaleX(this.activatedDirection.x, "RondDuBras.draw"), 
+                  reScaleY(this.activatedDirection.y, "RondDuBras.draw"), 
+                  reScaleZ(this.activatedDirection.z, "RondDuBras.draw"));
     
     // Draw shell:
-    Quaternion azimuthClockwiseRotation =      axisAngleToQuaternion(0, 1, 0,  HALF_PI/2); // clockwise half rotation
-    Quaternion azimuthAntiClockwiseRotation =  axisAngleToQuaternion(0, 1, 0, -HALF_PI/2); // anticlockwise half rotation
-    Quaternion altitudeClockwiseRotation =     axisAngleToQuaternion(rotateVector(new PVector(directionActivated.x, 0, directionActivated.z), new PVector(0, 1, 0), HALF_PI),  HALF_PI/2); // clockwise half rotation
-    Quaternion altitudeAntiClockwiseRotation = axisAngleToQuaternion(rotateVector(new PVector(directionActivated.x, 0, directionActivated.z), new PVector(0, 1, 0), HALF_PI), -HALF_PI/2); // anticlockwise half rotation
-    
-    PVector vertex1 = rotateVector(rotateVector(directionActivated, altitudeClockwiseRotation)    , azimuthClockwiseRotation);
-    PVector vertex2 = rotateVector(rotateVector(directionActivated, altitudeAntiClockwiseRotation), azimuthClockwiseRotation);
-    PVector vertex3 = rotateVector(rotateVector(directionActivated, altitudeAntiClockwiseRotation), azimuthAntiClockwiseRotation);
-    PVector vertex4 = rotateVector(rotateVector(directionActivated, altitudeClockwiseRotation)    , azimuthAntiClockwiseRotation);
-    
-    float fadeOutFactor = 1-(float)((millis()-this.activationTime)/(float)this.fadeOutTime);
+    float fadeOutFactor = 1-(float)((millis()-this.timeWhenActivated)/(float)this.fadeOutTime);
     fill(100, 0, 200, 255*fadeOutFactor);
     beginShape();
-    vertex(vertex1, "RondDuBras.draw");
-    vertex(vertex2, "RondDuBras.draw");
-    vertex(vertex3, "RondDuBras.draw");
-    vertex(vertex4, "RondDuBras.draw");
+    vertex(PVector.mult(this.activatedDirectionSextantVertexes[0], size), "RondDuBras.draw");
+    vertex(PVector.mult(this.activatedDirectionSextantVertexes[1], size), "RondDuBras.draw");
+    vertex(PVector.mult(this.activatedDirectionSextantVertexes[2], size), "RondDuBras.draw");
+    vertex(PVector.mult(this.activatedDirectionSextantVertexes[3], size), "RondDuBras.draw");
     endShape(CLOSE);
     popMatrix();
   }
