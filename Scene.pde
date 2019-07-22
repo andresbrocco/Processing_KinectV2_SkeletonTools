@@ -27,6 +27,7 @@ public class Scene{
   public boolean drawHandStates = false;
   public boolean drawPollock = false;
   public boolean drawRondDuBras = true;
+  public boolean loadFloorCalibration = false;
   
   public Scene(){
     this.currentDeltaT = 1/this.frameRate_; 
@@ -35,7 +36,7 @@ public class Scene{
   }
   
   public void init(){
-    selectInput("Choose a calibrated floor CSV File:", "loadFloorCalibrationThread");
+    if(this.loadFloorCalibration) selectInput("Choose a calibrated floor CSV File:", "loadFloorCalibrationThread");
     kinect.enableSkeleton3DMap(true);
     kinect.init();  
   }
