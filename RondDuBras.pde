@@ -4,7 +4,6 @@
 public class RondDuBras{
   private final float crossProductMagnitudeThreshold = 0.5;
   private final float minimumMovementAmplitude = QUARTER_PI; // arc length (radians). to be adjusted
-  private final float minimumMovementPrecision = 0.75; // percentage. to be adjusted
   private int fadeOutTime = 1000; // millisseconds
   private String whichHand; // LEFT or RIGHT
   private Joint handJoint;
@@ -12,7 +11,6 @@ public class RondDuBras{
   private Joint spineShoulderJoint;
   private PVector[] spineShoulderOrientationWhenCrossedUpTheThreshold = new PVector[3];
   private PVector[] spineShoulderOrientationWhenCrossedDownTheThreshold = new PVector[3];
-  private PVector[] spineShoulderOrientationWhenActivated = new PVector[3];
   private PVector[] averageSpineShoulderOrientationWhenAboveThreshold = new PVector[3];
   private PVector currentShoulderToHandPosition;
   private PVector shoulderToHandPositionWhenCrossedUpTheThreshold;
@@ -25,9 +23,6 @@ public class RondDuBras{
   private float   currentCrossProductMagnitude = 0; // adjusted by perpendicularismFactor
   private PVector averageCrossProductWhenAboveThreshold = new PVector(0, 0, 0);
   private int numberOfFramesAboveThreshold = 0;
-  private PVector crossProductWhenCrossedUpTheThreshold = new PVector(0, 0, 0);
-  private PVector crossProductWhenCrossedDownTheThreshold = new PVector(0, 0, 0);
-  private PVector crossProductWhenActivated = new PVector(0,0,0);
   private PVector crossProductDirectionWhenActivatedRelativeToSpineShoulder;
   private boolean previousCrossProductMagnitudeWasAboveThreshold = false;
   private boolean currentCrossProductMagnitudeIsAboveThreshold = false;
@@ -70,11 +65,11 @@ public class RondDuBras{
     if(this.currentCrossProductMagnitudeIsAboveThreshold){
       if(this.previousCrossProductMagnitudeWasAboveThreshold){ // Remained above the threshold.
         this.numberOfFramesAboveThreshold++;
-        float step = 1/(sq(this.numberOfFramesAboveThreshold)-2*this.numberOfFramesAboveThreshold+2);
-        this.averageCrossProductWhenAboveThreshold = slerp(this.averageCrossProductWhenAboveThreshold, this.currentCrossProduct, 0.2); //step);
-        this.averageSpineShoulderOrientationWhenAboveThreshold[0] = slerp(this.averageSpineShoulderOrientationWhenAboveThreshold[0], this.spineShoulderJoint.estimatedDirectionX, 0.2); //step);
-        this.averageSpineShoulderOrientationWhenAboveThreshold[1] = slerp(this.averageSpineShoulderOrientationWhenAboveThreshold[1], this.spineShoulderJoint.estimatedDirectionY, 0.2); //step);
-        this.averageSpineShoulderOrientationWhenAboveThreshold[2] = slerp(this.averageSpineShoulderOrientationWhenAboveThreshold[2], this.spineShoulderJoint.estimatedDirectionZ, 0.2); //step);
+        float step = 1/(float)this.numberOfFramesAboveThreshold;
+        this.averageCrossProductWhenAboveThreshold = slerp(this.averageCrossProductWhenAboveThreshold, this.currentCrossProduct, step);
+        this.averageSpineShoulderOrientationWhenAboveThreshold[0] = slerp(this.averageSpineShoulderOrientationWhenAboveThreshold[0], this.spineShoulderJoint.estimatedDirectionX, step); //step);
+        this.averageSpineShoulderOrientationWhenAboveThreshold[1] = slerp(this.averageSpineShoulderOrientationWhenAboveThreshold[1], this.spineShoulderJoint.estimatedDirectionY, step); //step);
+        this.averageSpineShoulderOrientationWhenAboveThreshold[2] = slerp(this.averageSpineShoulderOrientationWhenAboveThreshold[2], this.spineShoulderJoint.estimatedDirectionZ, step); //step);
       } else { // Crossed up the threshold.
         this.numberOfFramesAboveThreshold = 1;
         this.averageCrossProductWhenAboveThreshold = this.currentCrossProduct;
@@ -82,28 +77,19 @@ public class RondDuBras{
         this.averageSpineShoulderOrientationWhenAboveThreshold[1] = this.spineShoulderJoint.estimatedDirectionY;
         this.averageSpineShoulderOrientationWhenAboveThreshold[2] = this.spineShoulderJoint.estimatedDirectionZ;
         this.shoulderToHandPositionWhenCrossedUpTheThreshold = this.currentShoulderToHandPosition;
-        this.crossProductWhenCrossedUpTheThreshold = this.currentCrossProduct;
         this.spineShoulderOrientationWhenCrossedUpTheThreshold[0] = this.spineShoulderJoint.estimatedDirectionX;
         this.spineShoulderOrientationWhenCrossedUpTheThreshold[1] = this.spineShoulderJoint.estimatedDirectionY;
         this.spineShoulderOrientationWhenCrossedUpTheThreshold[2] = this.spineShoulderJoint.estimatedDirectionZ;
       }
     } else if(this.previousCrossProductMagnitudeWasAboveThreshold){ // Crossed down the threshold. 
       this.shoulderToHandPositionWhenCrossedDownTheThreshold = this.currentShoulderToHandPosition;
-      this.crossProductWhenCrossedDownTheThreshold = this.currentCrossProduct;
       this.spineShoulderOrientationWhenCrossedDownTheThreshold[0] = this.spineShoulderJoint.estimatedDirectionX;
       this.spineShoulderOrientationWhenCrossedDownTheThreshold[1] = this.spineShoulderJoint.estimatedDirectionY;
       this.spineShoulderOrientationWhenCrossedDownTheThreshold[2] = this.spineShoulderJoint.estimatedDirectionZ;
       
       float movementAmplitude = PVector.angleBetween(this.shoulderToHandPositionWhenCrossedUpTheThreshold, this.shoulderToHandPositionWhenCrossedDownTheThreshold);
       //println("movementAmplitude: " + movementAmplitude);
-      
-      //float movementPrecision = PVector.dot(PVector.div(this.crossProductWhenCrossedUpTheThreshold, this.crossProductWhenCrossedUpTheThreshold.mag()), PVector.div(this.crossProductWhenCrossedDownTheThreshold, this.crossProductWhenCrossedDownTheThreshold.mag()));
-      //println("movementPrecision: " + movementPrecision);
-      if(movementAmplitude > this.minimumMovementAmplitude){ // && movementPrecision > this.minimumMovementPrecision){ 
-        this.crossProductWhenActivated = slerp(this.crossProductWhenCrossedUpTheThreshold, this.crossProductWhenCrossedDownTheThreshold, 0.5);
-        this.spineShoulderOrientationWhenActivated[0] = slerp(this.spineShoulderOrientationWhenCrossedUpTheThreshold[0], spineShoulderOrientationWhenCrossedDownTheThreshold[0], 0.5);
-        this.spineShoulderOrientationWhenActivated[1] = slerp(this.spineShoulderOrientationWhenCrossedUpTheThreshold[1], spineShoulderOrientationWhenCrossedDownTheThreshold[1], 0.5);
-        this.spineShoulderOrientationWhenActivated[2] = slerp(this.spineShoulderOrientationWhenCrossedUpTheThreshold[2], spineShoulderOrientationWhenCrossedDownTheThreshold[2], 0.5);
+      if(movementAmplitude > this.minimumMovementAmplitude){
         this.timeWhenActivated = millis();
         this.findDirection();
       }
@@ -135,7 +121,7 @@ public class RondDuBras{
       this.activatedDirectionSextantVertexes[1] = new PVector(-1, -1,  1);
       this.activatedDirectionSextantVertexes[2] = new PVector(-1,  1,  1);
       this.activatedDirectionSextantVertexes[3] = new PVector(-1,  1, -1);
-      max = crossProductDirectionWhenActivatedRelativeToSpineShoulder.x;
+      max = -crossProductDirectionWhenActivatedRelativeToSpineShoulder.x;
     }
     if(crossProductDirectionWhenActivatedRelativeToSpineShoulder.y > max) {
       this.activatedDirectionCode = 2;
@@ -153,7 +139,7 @@ public class RondDuBras{
       this.activatedDirectionSextantVertexes[1] = new PVector(-1, -1,  1);
       this.activatedDirectionSextantVertexes[2] = new PVector( 1, -1,  1);
       this.activatedDirectionSextantVertexes[3] = new PVector( 1, -1, -1);
-      max = crossProductDirectionWhenActivatedRelativeToSpineShoulder.y;
+      max = -crossProductDirectionWhenActivatedRelativeToSpineShoulder.y;
     }
     if(crossProductDirectionWhenActivatedRelativeToSpineShoulder.z > max) {
       this.activatedDirectionCode = 3;
@@ -171,7 +157,7 @@ public class RondDuBras{
       this.activatedDirectionSextantVertexes[1] = new PVector(-1,  1, -1);
       this.activatedDirectionSextantVertexes[2] = new PVector( 1,  1, -1);
       this.activatedDirectionSextantVertexes[3] = new PVector( 1, -1, -1);
-      max = crossProductDirectionWhenActivatedRelativeToSpineShoulder.z;
+      max = -crossProductDirectionWhenActivatedRelativeToSpineShoulder.z;
     }
     //println("RondDuBrasActivatedDirectionCode: " + this.activatedDirectionCode);
   }
@@ -181,8 +167,8 @@ public class RondDuBras{
    */
   private void draw(boolean drawCurrentCrossProduct, boolean drawPossibleDirectionsInTheOrigin){
     if(drawCurrentCrossProduct) this.drawCurrentCrossProduct(0.5);
-    if(drawPossibleDirectionsInTheOrigin) this.drawPossibleDirectionsInTheOrigin(0.5);
-    if(millis()-this.timeWhenActivated < this.fadeOutTime) this.drawActivatedDirectionInTheOrigin(0.5);
+    if(drawPossibleDirectionsInTheOrigin) this.drawPossibleDirectionsInTheOrigin(0.3);
+    if(millis()-this.timeWhenActivated < this.fadeOutTime) this.drawActivatedDirectionInTheOrigin(0.3);
   }
   
   /**
@@ -196,9 +182,6 @@ public class RondDuBras{
     translate(reScaleX(this.shoulderJoint.estimatedPosition.x, "RondDuBras.draw"),
               reScaleY(this.shoulderJoint.estimatedPosition.y, "RondDuBras.draw"),
               reScaleZ(this.shoulderJoint.estimatedPosition.z, "RondDuBras.draw"));
-    /*line(0, 0, 0, size*reScaleX(this.currentCrossProduct.x, "RondDuBras.draw"), 
-                  size*reScaleY(this.currentCrossProduct.y, "RondDuBras.draw"), 
-                  size*reScaleZ(this.currentCrossProduct.z, "RondDuBras.draw"));*/
     if(this.currentCrossProductMagnitudeIsAboveThreshold){
       line(0, 0, 0, size*reScaleX(this.averageCrossProductWhenAboveThreshold.x, "RondDuBras.draw"), 
                     size*reScaleY(this.averageCrossProductWhenAboveThreshold.y, "RondDuBras.draw"), 
@@ -224,16 +207,15 @@ public class RondDuBras{
     
     // Draw crossProductDirectionWhenActivatedRelativeToSpineShoulder:
     stroke(0, 0, 0, 128);
-    line(0, 0, 0, size*reScaleX(this.crossProductDirectionWhenActivatedRelativeToSpineShoulder.x, "RondDuBras.draw"), 
-                  size*reScaleY(this.crossProductDirectionWhenActivatedRelativeToSpineShoulder.y, "RondDuBras.draw"), 
-                  size*reScaleZ(this.crossProductDirectionWhenActivatedRelativeToSpineShoulder.z, "RondDuBras.draw"));
-    
-    stroke(100, 0, 200, 255);
+    line(0, 0, 0, reScaleX(this.crossProductDirectionWhenActivatedRelativeToSpineShoulder.x, "RondDuBras.draw")*size*3/sqrt(3), 
+                  reScaleY(this.crossProductDirectionWhenActivatedRelativeToSpineShoulder.y, "RondDuBras.draw")*size*3/sqrt(3), 
+                  reScaleZ(this.crossProductDirectionWhenActivatedRelativeToSpineShoulder.z, "RondDuBras.draw")*size*3/sqrt(3));
     
     // Draw activatedDirection:
-    line(0, 0, 0, reScaleX(this.activatedDirection.x, "RondDuBras.draw"), 
-                  reScaleY(this.activatedDirection.y, "RondDuBras.draw"), 
-                  reScaleZ(this.activatedDirection.z, "RondDuBras.draw"));
+    stroke(100, 0, 200, 255);
+    line(0, 0, 0, reScaleX(this.activatedDirection.x, "RondDuBras.draw")*size*3/sqrt(3), 
+                  reScaleY(this.activatedDirection.y, "RondDuBras.draw")*size*3/sqrt(3), 
+                  reScaleZ(this.activatedDirection.z, "RondDuBras.draw")*size*3/sqrt(3));
     
     // Draw shell:
     float fadeOutFactor = 1-(float)((millis()-this.timeWhenActivated)/(float)this.fadeOutTime);
