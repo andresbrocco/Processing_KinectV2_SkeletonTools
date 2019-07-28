@@ -19,6 +19,10 @@ public class Scene{
   private HashMap<Integer, Skeleton> activeSkeletons = new HashMap<Integer, Skeleton>();
   private float currentDeltaT;
   private float previousDeltaT;
+  public int numberOfSkeletons = 0;
+  public boolean saveSession = true;
+  public String sessionName = "";
+  public PrintWriter savingOutput;
   public boolean drawScene = true;
   public boolean drawMeasured = false;
   public boolean drawBoneRelativeOrientation = false;
@@ -30,10 +34,6 @@ public class Scene{
   public boolean drawMomentum = true;
   public boolean drawCenterOfMass = true;
   public boolean loadFloorCalibration = false;
-  public boolean saveSession = true;
-  public String sessionName = "";
-  public PrintWriter savingOutput;
-  public int numberOfSkeletons = 0;
   
   public Scene(){
     this.currentDeltaT = 1/this.frameRate_; 
@@ -59,7 +59,15 @@ public class Scene{
       this.saveSession = false;
     } else {
       this.savingOutput = createWriter("savedSessions/"+this.sessionName+"/header.txt");
-      this.savingOutput.println("Any general information about the session could be saved here: frameRate"+frameRate);
+      this.savingOutput.println("frameRate: "+this.frameRate_);
+      if(this.floor.isCalibrated){
+        this.savingOutput.println("Floor calibration file used: "+this.floor.selectedCalibrationFilePath);
+        this.savingOutput.println("Floor center position: "+this.floor.centerPosition.x+" "+this.floor.centerPosition.y+" "+this.floor.centerPosition.z);
+        this.savingOutput.println("Floor orientation: "+this.floor.orientation.real+" "+this.floor.orientation.vector.x+" "+this.floor.orientation.vector.y+" "+this.floor.orientation.vector.z);
+        this.savingOutput.println("Floor dimensions: " + this.floor.dimensions.x + " " + this.floor.dimensions.y + " " + this.floor.dimensions.z);
+      } else{
+        this.savingOutput.println("Floor was not calibrated");
+      }
       this.savingOutput.flush();
       this.savingOutput.close();
     }

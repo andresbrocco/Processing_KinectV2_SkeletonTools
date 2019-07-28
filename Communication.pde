@@ -5,7 +5,6 @@ public class Communication{
   private OscP5 oscP5;
   private NetAddress pdAddress;
   
-  
   public Communication(String pdIp, int pdPort, int myPort){
     this.oscP5 = new OscP5(this, myPort);
     this.pdAddress = new NetAddress(pdIp, pdPort); //localhost: "127.0.0.1" "192.168.15.16" // "192.168.15.1"
@@ -14,12 +13,55 @@ public class Communication{
   public void sendScene(Scene scene){
     if(!scene.activeSkeletons.isEmpty()){
       for(Skeleton skeleton:scene.activeSkeletons.values()){
+        this.sendMessageToElenaProject(skeleton);
+        /*
         this.sendKinectSkeleton(skeleton);
         this.sendGrainParameters(skeleton);
         this.sendVideoParameter(skeleton);
         this.sendSteeringWheel(skeleton);
+        */
       }
     }
+  }
+  
+  private void sendMessageToElenaProject(Skeleton skeleton){
+    OscMessage messageToElenaProject;
+    
+    messageToElenaProject = new OscMessage("/centerOfMassHeightAdjusted:");
+    messageToElenaProject.add(skeleton.centerOfMassHeightAdjusted);
+    this.oscP5.send(messageToElenaProject, pdAddress);
+    
+    messageToElenaProject = new OscMessage("/dispersion:");
+    messageToElenaProject.add(skeleton.dispersion);
+    this.oscP5.send(messageToElenaProject, pdAddress);
+    
+    messageToElenaProject = new OscMessage("/leftHandPollock.activationDirectionCode:");
+    messageToElenaProject.add(skeleton.leftHandPollock.activationDirectionCode);
+    this.oscP5.send(messageToElenaProject, pdAddress);
+    
+    messageToElenaProject = new OscMessage("/rightHandPollock.activationDirectionCode:");
+    messageToElenaProject.add(skeleton.rightHandPollock.activationDirectionCode);
+    this.oscP5.send(messageToElenaProject, pdAddress);
+    
+    messageToElenaProject = new OscMessage("/leftHandRondDuBras.activatedDirectionCode:");
+    messageToElenaProject.add(skeleton.leftHandRondDuBras.activatedDirectionCode);
+    this.oscP5.send(messageToElenaProject, pdAddress);
+    
+    messageToElenaProject = new OscMessage("/rightHandRondDuBras.activatedDirectionCode:");
+    messageToElenaProject.add(skeleton.rightHandRondDuBras.activatedDirectionCode);
+    this.oscP5.send(messageToElenaProject, pdAddress);
+    
+    messageToElenaProject = new OscMessage("/momentum.averageFluid:");
+    messageToElenaProject.add(skeleton.momentum.averageFluid);
+    this.oscP5.send(messageToElenaProject, pdAddress);
+    
+    messageToElenaProject = new OscMessage("/momentum.averageHarsh:");
+    messageToElenaProject.add(skeleton.momentum.averageHarsh);
+    this.oscP5.send(messageToElenaProject, pdAddress);
+    
+    messageToElenaProject = new OscMessage("/momentum.averageTotal:");
+    messageToElenaProject.add(skeleton.momentum.averageTotal);
+    this.oscP5.send(messageToElenaProject, pdAddress);
   }
   
   private void sendSteeringWheel(Skeleton skeleton){

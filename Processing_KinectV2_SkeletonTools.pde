@@ -31,7 +31,7 @@ void draw()
     // Your animation algorithm should be placed here
     background(color(0));
   }
-  //communication.sendScene(scene);
+  communication.sendScene(scene);
 }
 
 void keyPressed(){
@@ -57,6 +57,10 @@ void keyPressed(){
     if(key == 'j') scene.drawJointOrientation = !scene.drawJointOrientation;
     if(key == 'h') scene.drawHandRadius = !scene.drawHandRadius;
     if(key == 'H') scene.drawHandStates = !scene.drawHandStates;
+    if(key == 'p') scene.drawPollock = !scene.drawPollock;
+    if(key == 'r') scene.drawRondDuBras = !scene.drawRondDuBras;
+    if(key == 'c') scene.drawCenterOfMass = !scene.drawCenterOfMass;
+    if(key == 'M') scene.drawMomentum = !scene.drawMomentum;
   }
 }
 

@@ -35,6 +35,7 @@ class Floor{
   private PVector pppBoxVertex;
   private PVector nnnBoxVertex;
   private PVector dimensions;
+  public String selectedCalibrationFilePath;
   
   public Floor(Scene scene){
     this.scene = scene;
@@ -75,8 +76,10 @@ class Floor{
   public void loadCalibration(File selectedCalibrationFile){
     if (selectedCalibrationFile == null) {
       println("Didn't load any floor calibration file.");
+      this.scene.loadFloorCalibration = false;
     } else {
-      Table loadedHistoryOfFeetPositions = loadTable(selectedCalibrationFile.getAbsolutePath(), "header");
+      this.selectedCalibrationFilePath = selectedCalibrationFile.getAbsolutePath();
+      Table loadedHistoryOfFeetPositions = loadTable(this.selectedCalibrationFilePath, "header");
       println(loadedHistoryOfFeetPositions.getRowCount() + " total feet positions in calibration file"); 
       for (TableRow row : loadedHistoryOfFeetPositions.rows()) {
         this.indexToBeUpdated = row.getInt("idx");

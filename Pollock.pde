@@ -81,6 +81,8 @@ public class Pollock{
     } else if(this.shoulderToHandRadialSpeedWasAboveThreshold){ // Pollock is activated here
       this.activationTime = millis();
       this.findDirection();
+    } else { // Pollock is reseted here
+      this.activationDirectionCode = 0;
     }
     this.shoulderToHandRadialSpeedWasAboveThreshold = this.shoulderToHandRadialSpeedIsAboveThreshold;
   }
@@ -99,8 +101,8 @@ public class Pollock{
     Matrix projectionInEachPossibleDirectionVector = this.possibleDirectionsMatrix.times(headToHandDirectionRelativeToShoulderVector);
     double max = 0;
     int possibleDirectionIndex = 0;
-    for(int possibleDirectionAltitude=0; possibleDirectionAltitude<this.numberOfAltitudes; possibleDirectionAltitude++){
-      for(int possibleDirectionAzimuth=0; possibleDirectionAzimuth<this.numberOfAzimuths; possibleDirectionAzimuth++){
+    for(int possibleDirectionAltitude=1; possibleDirectionAltitude<=this.numberOfAltitudes; possibleDirectionAltitude++){
+      for(int possibleDirectionAzimuth=1; possibleDirectionAzimuth<=this.numberOfAzimuths; possibleDirectionAzimuth++){
         if(projectionInEachPossibleDirectionVector.get(possibleDirectionIndex, 0) > max){
           this.activationDirectionIndex = possibleDirectionIndex;
           this.activationDirectionCode = possibleDirectionAzimuth*10 + possibleDirectionAltitude;

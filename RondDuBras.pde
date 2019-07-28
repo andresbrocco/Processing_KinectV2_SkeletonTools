@@ -63,7 +63,8 @@ public class RondDuBras{
     //println("currentCrossProductMagnitude: " + this.currentCrossProductMagnitude);
     this.currentCrossProductMagnitudeIsAboveThreshold = this.currentCrossProductMagnitude > this.crossProductMagnitudeThreshold;
     
-    if(this.currentCrossProductMagnitudeIsAboveThreshold){
+    this.activatedDirectionCode = 0;
+    if(this.currentCrossProductMagnitudeIsAboveThreshold){ // Is above the threshold
       if(this.previousCrossProductMagnitudeWasAboveThreshold){ // Remained above the threshold.
         this.numberOfFramesAboveThreshold++;
         float step = 1/(float)this.numberOfFramesAboveThreshold;
@@ -93,7 +94,7 @@ public class RondDuBras{
       if(movementAmplitude > this.minimumMovementAmplitude){
         this.timeWhenActivated = millis();
         this.findDirection();
-      }
+      } 
     }
     this.previousCrossProductMagnitudeWasAboveThreshold = this.currentCrossProductMagnitudeIsAboveThreshold;
   }

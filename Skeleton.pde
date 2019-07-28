@@ -48,12 +48,13 @@ public class Skeleton{
                                 {22, HAND_RIGHT, HAND_TIP_RIGHT}, 
                                 {23, WRIST_RIGHT, THUMB_RIGHT}};
   // Skeleton Features:
-  public float bodySize; // Average length of all bones
+  public float bodySize; // Average length of all bones. Ideally, it should be normalized so that an average person would have bodySize = 1... This normalization have yet to be implemented.
   public float headInclination = 0; // head inclination relative to Z axis, in radians
   public float shoulderTension = 0; // SHOULDER height relative to SPINESHOULDER
   public SteeringWheel steeringWheel = new SteeringWheel(this);
   public float distanceBetweenHands;
   public PVector centerOfMass;
+  public float centerOfMassHeightAdjusted; // Center of Mass height adjusted for body size. 
   public float dispersion; // variance of position of joints, adjusted by body size. (sum of distances to the center of gravity). Ranges from ~1.5 to ~3.
   public Pollock leftHandPollock;
   public Pollock rightHandPollock;
@@ -90,7 +91,7 @@ public class Skeleton{
     this.rightHandRondDuBras = new RondDuBras(this, "RIGHT");
     if(this.scene.saveSession) {
       this.savingOutput = createWriter("savedSessions/"+this.scene.sessionName+"/skeleton"+this.scene.numberOfSkeletons+".txt");
-      this.savingOutput.print("frameCount bodySize centerOfMassX centerOfMassY centerOfMassZ dispersion leftPollock rightPollock leftRondDuBras rightRondDuBras momentumFluid momentumHarsh momentumTotal handRadiusLeft handRadiusRight ");
+      this.savingOutput.print("frameCount bodySize centerOfMassHeightAdjusted dispersion leftPollock rightPollock leftRondDuBras rightRondDuBras momentumFluid momentumHarsh momentumTotal handRadiusLeft handRadiusRight ");
       for(int j=0; j<25; j++){
         this.savingOutput.print("joint"+j+"PositionX joint"+j+"PositionY joint"+j+"PositionZ joint"+j+"OrientationW joint"+j+"OrientationX joint"+j+"OrientationY joint"+j+"OrientationZ ");
       }
@@ -127,16 +128,9 @@ public class Skeleton{
   }
   
   private void save(){
-    // Collect Things to save
-    //this.savingOutput.print("frameCount bodySize centerOfMassX centerOfMassY centerOfMassZ dispersion leftPollock rightPollock leftRondDuBras rightRondDuBras momentumFluid momentumHarsh momentumTotal handRadiusLeft handRadiusRight ");
-    //for(int j=0; j<25; j++){
-    //  
-    //}
     this.savingOutput.print(frameCount+" ");
     this.savingOutput.print(this.bodySize+" ");
-    this.savingOutput.print(this.centerOfMass.x+" ");
-    this.savingOutput.print(this.centerOfMass.y+" ");
-    this.savingOutput.print(this.centerOfMass.z+" ");
+    this.savingOutput.print(this.centerOfMassHeightAdjusted+" ");
     this.savingOutput.print(this.dispersion+" ");
     this.savingOutput.print(this.leftHandPollock.activationDirectionCode+" ");
     this.savingOutput.print(this.rightHandPollock.activationDirectionCode+" ");
@@ -180,6 +174,8 @@ public class Skeleton{
       //this.centerOfMass = this.centerOfMass.lerp(this.joints[j].estimatedPosition, 1/(j+1));
       this.centerOfMass.add(PVector.div(this.joints[j].estimatedPosition, 25));
     }
+    this.centerOfMassHeightAdjusted = this.scene.floor.toFloorCoordinateSystem(this.centerOfMass).y/this.bodySize;
+    //println("this.centerOfMassHeightAdjusted: "+this.centerOfMassHeightAdjusted);
   }
   
 /**
@@ -281,11 +277,7 @@ public class Skeleton{
     }
     if(drawMomentum) this.momentum.draw();
     if(drawCenterOfMass) this.drawCenterOfMass(20);
-    // Both below shall be deleted
-    // testing relative position to the floor coordinate system:
-    //if(this.scene.floor.isCalibrated) this.testingRelativePosition();
-    // Testing Steering Wheel:
-    this.drawSteeringWheel();
+    //this.drawSteeringWheel();
   }
   
 /**
