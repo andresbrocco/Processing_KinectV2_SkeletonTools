@@ -48,15 +48,17 @@ public class Skeleton{
                                 {23, WRIST_RIGHT, THUMB_RIGHT}};
   // Skeleton Features:
   public float bodySize; // Sum of lengths of all bones
-  public float averageMomentum = 0; // in m/s. In general, above 1 can be considered steady.
   public float headInclination = 0; // head inclination relative to Z axis, in radians
   public float shoulderTension = 0; // SHOULDER height relative to SPINESHOULDER
   public SteeringWheel steeringWheel = new SteeringWheel(this);
   public float distanceBetweenHands;
+  public PVector centerOfMass;
+  public float dispersion; // variance of position of joints. (sum of distances to the center of gravity)
   public Pollock leftHandPollock;
   public Pollock rightHandPollock;
   public RondDuBras leftHandRondDuBras;
   public RondDuBras rightHandRondDuBras;
+  public Momentum momentum = new Momentum(this);
                       
   public Skeleton(KSkeleton kSkeleton, Scene scene){
     this.scene = scene;
@@ -103,10 +105,13 @@ public class Skeleton{
     }
     this.smoothSkeleton();
     this.calculateBodySize();
+    this.calculateCenterOfMass();
+    this.calculateDispersion();
     this.leftHandPollock.update();
     this.rightHandPollock.update();
     this.leftHandRondDuBras.update();
     this.rightHandRondDuBras.update();
+    this.momentum.update();
     this.appearedLastInFrame = frameCount;
   }
   
@@ -119,6 +124,26 @@ public class Skeleton{
       this.bodySize += bone.estimatedLength;
     }
     this.bodySize /= 24;
+  }
+  
+/**
+ * Center of Mass: average position of all joints.
+ */
+  void calculateCenterOfMass(){
+    this.centerOfMass = this.joints[0].estimatedPosition;
+    for(int j=1; j<25; j++){ 
+      this.centerOfMass = slerp(this.centerOfMass, this.joints[j].estimatedPosition, 1/(j+1));
+    }
+  }
+  
+/**
+ * Variance of position of joints. (sum of distances to the center of gravity)
+ */
+  void calculateDispersion(){
+    this.dispersion = 0;
+    for(int j=0; j<25; j++){ 
+      this.dispersion += PVector.sub(this.joints[j].estimatedPosition, this.centerOfMass).mag();
+    }
   }
   
 /**
@@ -192,7 +217,7 @@ public class Skeleton{
  * @param drawHandRadius indicates if hand radius' should be drawn.
  * @param drawHandStates indicates if raw hand states should be drawn.
  */
-  public void draw(boolean drawMeasured, boolean drawJointOrientation, boolean drawBoneRelativeOrientation,  boolean drawHandRadius, boolean drawHandStates, boolean drawPollock, boolean drawRondDuBras){
+  public void draw(boolean drawMeasured, boolean drawJointOrientation, boolean drawBoneRelativeOrientation,  boolean drawHandRadius, boolean drawHandStates, boolean drawPollock, boolean drawRondDuBras, boolean drawMomentum){
     for(Bone bone:this.bones)    bone.draw(drawMeasured, drawBoneRelativeOrientation);
     for(Joint joint:this.joints) joint.draw(drawMeasured, drawJointOrientation);
     if(drawHandRadius)           this.drawHandRadius();
@@ -205,6 +230,7 @@ public class Skeleton{
       this.leftHandRondDuBras.draw(true, true);
       this.rightHandRondDuBras.draw(true, true);
     }
+    if(drawMomentum) this.momentum.draw();
     // Both below shall be deleted
     // testing relative position to the floor coordinate system:
     //if(this.scene.floor.isCalibrated) this.testingRelativePosition();
@@ -248,17 +274,7 @@ public class Skeleton{
     PVector resultantVectorFromSpineShoulderToShoulders = PVector.add(vectorFromSpineShoulderToLeftShoulder, vectorFromSpineShoulderToRightShoulder);
     this.shoulderTension = PVector.dot(resultantVectorFromSpineShoulderToShoulders, vectorFromSpineShoulderToNeck);
   }
-  
-  private void updateMomentum(){
-    float alpha = 0.02;
-    float measuredMomentum = 0;
-    for (int j = 0; j<25; j++){
-      measuredMomentum = measuredMomentum + this.joints[j].estimatedVelocity.mag();
-    }
-    this.averageMomentum = lerp(this.averageMomentum, measuredMomentum, alpha);
-    //println("averageMomentum: "+ this.averageMomentum);
-  }
-  
+    
 /**
  * Draws a shallow sphere around each hand with its respective size.
  */

@@ -1,5 +1,6 @@
 /**
  * RondDuBras: Trigger Affordance that quantifies the "round" movement of each hand.
+ * TODO: Finish Javadoc Documentation.
  */
 public class RondDuBras{
   private final float crossProductMagnitudeThreshold = 0.5;
@@ -54,7 +55,7 @@ public class RondDuBras{
     this.currentShoulderToHandDirection = PVector.div(this.currentShoulderToHandPosition, this.currentShoulderToHandPosition.mag());
     this.currentShoulderToHandVelocity = PVector.sub(this.handJoint.estimatedVelocity, this.shoulderJoint.estimatedVelocity);
     this.currentShoulderToHandRadialSpeed = PVector.dot(this.currentShoulderToHandVelocity, this.currentShoulderToHandDirection);
-    this.currentShoulderToHandTangentialSpeed = sqrt(sq(this.currentShoulderToHandVelocity.mag())-sq(this.currentShoulderToHandRadialSpeed));
+    this.currentShoulderToHandTangentialSpeed = this.currentShoulderToHandVelocity.cross(this.currentShoulderToHandDirection).mag();
     this.currentCrossProduct = this.currentShoulderToHandPosition.cross(this.currentShoulderToHandVelocity);
     float perpendicularismFactor = abs(currentShoulderToHandTangentialSpeed)/this.currentShoulderToHandVelocity.mag();
     //println("perpendicularismFactor: " + perpendicularismFactor);

@@ -27,6 +27,7 @@ public class Scene{
   public boolean drawHandStates = false;
   public boolean drawPollock = false;
   public boolean drawRondDuBras = true;
+  public boolean drawMomentum = true;
   public boolean loadFloorCalibration = false;
   
   public Scene(){
@@ -87,7 +88,7 @@ public class Scene{
     this.setCamera();
     if(!this.activeSkeletons.isEmpty()){
       for (Skeleton skeleton:this.activeSkeletons.values()) {
-        skeleton.draw(this.drawMeasured, this.drawJointOrientation, this.drawBoneRelativeOrientation, this.drawHandRadius, this.drawHandStates, this.drawPollock, this.drawRondDuBras);
+        skeleton.draw(this.drawMeasured, this.drawJointOrientation, this.drawBoneRelativeOrientation, this.drawHandRadius, this.drawHandStates, this.drawPollock, this.drawRondDuBras, this.drawMomentum);
       }
     }
     this.drawKinectFieldOfView();
