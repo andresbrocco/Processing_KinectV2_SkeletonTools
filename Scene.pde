@@ -59,7 +59,7 @@ public class Scene{
       this.saveSession = false;
     } else {
       this.savingOutput = createWriter("savedSessions/"+this.sessionName+"/header.txt");
-      this.savingOutput.println("Any general information about the session could be saved here.");
+      this.savingOutput.println("Any general information about the session could be saved here: frameRate"+frameRate);
       this.savingOutput.flush();
       this.savingOutput.close();
     }

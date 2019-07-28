@@ -90,7 +90,11 @@ public class Skeleton{
     this.rightHandRondDuBras = new RondDuBras(this, "RIGHT");
     if(this.scene.saveSession) {
       this.savingOutput = createWriter("savedSessions/"+this.scene.sessionName+"/skeleton"+this.scene.numberOfSkeletons+".txt");
-      this.savingOutput.println("header");
+      this.savingOutput.print("frameCount bodySize centerOfMassX centerOfMassY centerOfMassZ dispersion leftPollock rightPollock leftRondDuBras rightRondDuBras momentumFluid momentumHarsh momentumTotal handRadiusLeft handRadiusRight ");
+      for(int j=0; j<25; j++){
+        this.savingOutput.print("joint"+j+"PositionX joint"+j+"PositionY joint"+j+"PositionZ joint"+j+"OrientationW joint"+j+"OrientationX joint"+j+"OrientationY joint"+j+"OrientationZ ");
+      }
+      this.savingOutput.println("");
       this.savingOutput.flush();
     }
     this.appearedLastInFrame = frameCount;
@@ -124,9 +128,37 @@ public class Skeleton{
   
   private void save(){
     // Collect Things to save
-    this.savingOutput.print(" ");
+    //this.savingOutput.print("frameCount bodySize centerOfMassX centerOfMassY centerOfMassZ dispersion leftPollock rightPollock leftRondDuBras rightRondDuBras momentumFluid momentumHarsh momentumTotal handRadiusLeft handRadiusRight ");
+    //for(int j=0; j<25; j++){
+    //  
+    //}
+    this.savingOutput.print(frameCount+" ");
+    this.savingOutput.print(this.bodySize+" ");
+    this.savingOutput.print(this.centerOfMass.x+" ");
+    this.savingOutput.print(this.centerOfMass.y+" ");
+    this.savingOutput.print(this.centerOfMass.z+" ");
+    this.savingOutput.print(this.dispersion+" ");
+    this.savingOutput.print(this.leftHandPollock.activationDirectionCode+" ");
+    this.savingOutput.print(this.rightHandPollock.activationDirectionCode+" ");
+    this.savingOutput.print(this.leftHandRondDuBras.activatedDirectionCode+" ");
+    this.savingOutput.print(this.rightHandRondDuBras.activatedDirectionCode+" ");
+    this.savingOutput.print(this.momentum.averageFluid+" ");
+    this.savingOutput.print(this.momentum.averageHarsh+" ");
+    this.savingOutput.print(this.momentum.averageTotal+" ");
+    this.savingOutput.print(this.estimatedHandRadius[0]+" ");
+    this.savingOutput.print(this.estimatedHandRadius[1]+" ");
+    for(int j=0; j<25; j++){
+      this.savingOutput.print(this.joints[j].estimatedPosition.x+" "+
+                              this.joints[j].estimatedPosition.y+" "+
+                              this.joints[j].estimatedPosition.z+" "+
+                              this.joints[j].estimatedOrientation.real+" "+
+                              this.joints[j].estimatedOrientation.vector.x+" "+
+                              this.joints[j].estimatedOrientation.vector.y+" "+
+                              this.joints[j].estimatedOrientation.vector.z+" ");
+    }
+    this.savingOutput.println("");
     this.savingOutput.flush();
-    this.savingOutput.close();
+    //this.savingOutput.close();
   }
   
 /**
@@ -248,7 +280,7 @@ public class Skeleton{
       this.rightHandRondDuBras.draw(true, true);
     }
     if(drawMomentum) this.momentum.draw();
-    if(drawCenterOfMass) this.drawCenterOfMass(100);
+    if(drawCenterOfMass) this.drawCenterOfMass(20);
     // Both below shall be deleted
     // testing relative position to the floor coordinate system:
     //if(this.scene.floor.isCalibrated) this.testingRelativePosition();
