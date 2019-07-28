@@ -28,7 +28,12 @@ public class Scene{
   public boolean drawPollock = false;
   public boolean drawRondDuBras = true;
   public boolean drawMomentum = true;
+  public boolean drawCenterOfMass = true;
   public boolean loadFloorCalibration = false;
+  public boolean saveSession = true;
+  public String sessionName = "";
+  public PrintWriter savingOutput;
+  public int numberOfSkeletons = 0;
   
   public Scene(){
     this.currentDeltaT = 1/this.frameRate_; 
@@ -38,27 +43,47 @@ public class Scene{
   
   public void init(){
     if(this.loadFloorCalibration) selectInput("Choose a calibrated floor CSV File:", "loadFloorCalibrationThread");
+    if(this.saveSession) thread("startSavingSceneThread");
     kinect.enableSkeleton3DMap(true);
     kinect.init();  
   }
   
+  public void startSavingScene(){
+    println("Enter session name:");
+    userTextInput = "";
+    gettingUserTextInput = true;
+    while(gettingUserTextInput) delay(100);
+    this.sessionName = userTextInput;
+    if(this.sessionName == ""){
+      println("Invalid session name. Session will not be saved.");
+      this.saveSession = false;
+    } else {
+      this.savingOutput = createWriter("savedSessions/"+this.sessionName+"/header.txt");
+      this.savingOutput.println("Any general information about the session could be saved here.");
+      this.savingOutput.flush();
+      this.savingOutput.close();
+    }
+  }
   
 /**
  * Get new data from kinect and call its skeletons to update.
  */
   public void update(){
-    this.previousDeltaT = this.currentDeltaT;
-    this.currentDeltaT = 1/frameRate;
-    ArrayList<KSkeleton> kSkeletonArray =  kinect.getSkeleton3d();
-    for (int bodyNumber = 0; bodyNumber < kSkeletonArray.size(); bodyNumber++){
-      KSkeleton kSkeleton = kSkeletonArray.get(bodyNumber);
-      if (!activeSkeletons.containsKey(kSkeleton.getIndexColor())){
-        this.activeSkeletons.put(kSkeleton.getIndexColor(), new Skeleton(kSkeleton, this));
+    if(!this.saveSession || this.sessionName!="") {
+      this.previousDeltaT = this.currentDeltaT;
+      this.currentDeltaT = 1/frameRate;
+      ArrayList<KSkeleton> kSkeletonArray = kinect.getSkeleton3d();
+      for (int bodyNumber = 0; bodyNumber < kSkeletonArray.size(); bodyNumber++){
+        KSkeleton kSkeleton = kSkeletonArray.get(bodyNumber);
+        if (!activeSkeletons.containsKey(kSkeleton.getIndexColor())){ // New skeleton received
+          this.numberOfSkeletons++;
+          this.activeSkeletons.put(kSkeleton.getIndexColor(), new Skeleton(kSkeleton, this));
+        }
+        Skeleton skeleton = activeSkeletons.get(kSkeleton.getIndexColor());
+        skeleton.update(kSkeleton);
       }
-      Skeleton skeleton = activeSkeletons.get(kSkeleton.getIndexColor());
-      skeleton.update(kSkeleton);
+      this.cleanDeadSkeletons();
     }
-    this.cleanDeadSkeletons();
   }
   
   
@@ -70,7 +95,8 @@ public class Scene{
     int s = 0;
     int[] skeletonsToRemove = new int[6];
     for(Skeleton skeleton:activeSkeletons.values()){
-      if(frameCount - skeleton.appearedLastInFrame > frameRate*timeTolerance){ 
+      if(frameCount - skeleton.appearedLastInFrame > frameRate*timeTolerance){
+        if(this.saveSession) skeleton.savingOutput.close();
         skeletonsToRemove[s] = skeleton.indexColor;
         s++;
       }
@@ -88,7 +114,7 @@ public class Scene{
     this.setCamera();
     if(!this.activeSkeletons.isEmpty()){
       for (Skeleton skeleton:this.activeSkeletons.values()) {
-        skeleton.draw(this.drawMeasured, this.drawJointOrientation, this.drawBoneRelativeOrientation, this.drawHandRadius, this.drawHandStates, this.drawPollock, this.drawRondDuBras, this.drawMomentum);
+        skeleton.draw(this.drawMeasured, this.drawJointOrientation, this.drawBoneRelativeOrientation, this.drawHandRadius, this.drawHandStates, this.drawPollock, this.drawRondDuBras, this.drawMomentum, this.drawCenterOfMass);
       }
     }
     this.drawKinectFieldOfView();
@@ -185,4 +211,11 @@ public class Scene{
     endShape();
     popMatrix();
   }
+}
+
+/**
+ * This method exists to make possible to start saving the scene on another thread other than the setup() loop, because it has a limit of 5000ms to finish before raising an error.
+ */
+void startSavingSceneThread(){ 
+  scene.startSavingScene();
 }

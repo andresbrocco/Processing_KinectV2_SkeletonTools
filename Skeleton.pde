@@ -21,6 +21,7 @@ public class Skeleton{
   private float[] estimatedHandRadius = {0.5, 0.5}; // goes from 0 to 1, indicating how opened the hand is.
   private Joint[] joints = new Joint[25];
   private Bone[] bones = new Bone[24];
+  public PrintWriter savingOutput;
   private int[][] skeletonConnections = {// {boneId, parentJointId, childJointId}
                                 {0 , SPINE_MID, SPINE_BASE}, 
                                 {1 , SPINE_MID, SPINE_SHOULDER}, 
@@ -53,7 +54,7 @@ public class Skeleton{
   public SteeringWheel steeringWheel = new SteeringWheel(this);
   public float distanceBetweenHands;
   public PVector centerOfMass;
-  public float dispersion; // variance of position of joints. (sum of distances to the center of gravity)
+  public float dispersion; // variance of position of joints. (sum of distances to the center of gravity). Ranges from ~0.2 meters to ~ 0.6 meters.
   public Pollock leftHandPollock;
   public Pollock rightHandPollock;
   public RondDuBras leftHandRondDuBras;
@@ -87,6 +88,11 @@ public class Skeleton{
     this.rightHandPollock = new Pollock(this, "RIGHT");
     this.leftHandRondDuBras = new RondDuBras(this, "LEFT");
     this.rightHandRondDuBras = new RondDuBras(this, "RIGHT");
+    if(this.scene.saveSession) {
+      this.savingOutput = createWriter("savedSessions/"+this.scene.sessionName+"/skeleton"+this.scene.numberOfSkeletons+".txt");
+      this.savingOutput.println("salvei alguma coisa desse esqueleto");
+      this.savingOutput.flush();
+    }
     this.appearedLastInFrame = frameCount;
   }
   
@@ -113,6 +119,13 @@ public class Skeleton{
     this.rightHandRondDuBras.update();
     this.momentum.update();
     this.appearedLastInFrame = frameCount;
+    if(this.scene.saveSession) this.save();
+  }
+  
+  private void save(){
+    // Collect Things to save
+    this.savingOutput.flush();
+    this.savingOutput.close();
   }
   
 /**
@@ -130,20 +143,22 @@ public class Skeleton{
  * Center of Mass: average position of all joints.
  */
   void calculateCenterOfMass(){
-    this.centerOfMass = this.joints[0].estimatedPosition;
-    for(int j=1; j<25; j++){ 
-      this.centerOfMass = slerp(this.centerOfMass, this.joints[j].estimatedPosition, 1/(j+1));
+    this.centerOfMass = new PVector(0, 0, 0);
+    for(int j=0; j<25; j++){ 
+      //this.centerOfMass = this.centerOfMass.lerp(this.joints[j].estimatedPosition, 1/(j+1));
+      this.centerOfMass.add(PVector.div(this.joints[j].estimatedPosition, 25));
     }
   }
   
 /**
- * Variance of position of joints. (sum of distances to the center of gravity)
+ * Variance of position of joints. (average of distances to the center of gravity). Ranges from ~0.2 meters to ~ 0.6 meters.
  */
   void calculateDispersion(){
     this.dispersion = 0;
     for(int j=0; j<25; j++){ 
-      this.dispersion += PVector.sub(this.joints[j].estimatedPosition, this.centerOfMass).mag();
+      this.dispersion += PVector.sub(this.joints[j].estimatedPosition, this.centerOfMass).mag()/25;
     }
+    //println("this.dispersion: "+this.dispersion);
   }
   
 /**
@@ -217,7 +232,8 @@ public class Skeleton{
  * @param drawHandRadius indicates if hand radius' should be drawn.
  * @param drawHandStates indicates if raw hand states should be drawn.
  */
-  public void draw(boolean drawMeasured, boolean drawJointOrientation, boolean drawBoneRelativeOrientation,  boolean drawHandRadius, boolean drawHandStates, boolean drawPollock, boolean drawRondDuBras, boolean drawMomentum){
+  public void draw(boolean drawMeasured, boolean drawJointOrientation, boolean drawBoneRelativeOrientation, boolean drawHandRadius, 
+                   boolean drawHandStates, boolean drawPollock, boolean drawRondDuBras, boolean drawMomentum, boolean drawCenterOfMass){
     for(Bone bone:this.bones)    bone.draw(drawMeasured, drawBoneRelativeOrientation);
     for(Joint joint:this.joints) joint.draw(drawMeasured, drawJointOrientation);
     if(drawHandRadius)           this.drawHandRadius();
@@ -231,6 +247,7 @@ public class Skeleton{
       this.rightHandRondDuBras.draw(true, true);
     }
     if(drawMomentum) this.momentum.draw();
+    if(drawCenterOfMass) this.drawCenterOfMass(100);
     // Both below shall be deleted
     // testing relative position to the floor coordinate system:
     //if(this.scene.floor.isCalibrated) this.testingRelativePosition();
@@ -273,6 +290,22 @@ public class Skeleton{
     PVector vectorFromSpineShoulderToNeck = PVector.sub(this.joints[NECK].estimatedPosition, this.joints[SPINE_SHOULDER].estimatedPosition);
     PVector resultantVectorFromSpineShoulderToShoulders = PVector.add(vectorFromSpineShoulderToLeftShoulder, vectorFromSpineShoulderToRightShoulder);
     this.shoulderTension = PVector.dot(resultantVectorFromSpineShoulderToShoulders, vectorFromSpineShoulderToNeck);
+  }
+  
+  private void drawCenterOfMass(float size){
+    pushMatrix();
+    translate(reScaleX(this.centerOfMass.x, "drawCenterOfMass"), 
+              reScaleY(this.centerOfMass.y, "drawCenterOfMass"), 
+              reScaleZ(this.centerOfMass.z, "drawCenterOfMass"));
+    noStroke();
+    fill(125, 0, 200, 128);
+    sphere(5);
+    noFill();
+    stroke(75, 0, 150, 128);
+    strokeWeight(1);
+    sphereDetail(14);
+    sphere(size*this.dispersion);
+    popMatrix();
   }
     
 /**
