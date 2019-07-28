@@ -48,13 +48,13 @@ public class Skeleton{
                                 {22, HAND_RIGHT, HAND_TIP_RIGHT}, 
                                 {23, WRIST_RIGHT, THUMB_RIGHT}};
   // Skeleton Features:
-  public float bodySize; // Sum of lengths of all bones
+  public float bodySize; // Average length of all bones
   public float headInclination = 0; // head inclination relative to Z axis, in radians
   public float shoulderTension = 0; // SHOULDER height relative to SPINESHOULDER
   public SteeringWheel steeringWheel = new SteeringWheel(this);
   public float distanceBetweenHands;
   public PVector centerOfMass;
-  public float dispersion; // variance of position of joints. (sum of distances to the center of gravity). Ranges from ~0.2 meters to ~ 0.6 meters.
+  public float dispersion; // variance of position of joints, adjusted by body size. (sum of distances to the center of gravity). Ranges from ~1.5 to ~3.
   public Pollock leftHandPollock;
   public Pollock rightHandPollock;
   public RondDuBras leftHandRondDuBras;
@@ -90,7 +90,7 @@ public class Skeleton{
     this.rightHandRondDuBras = new RondDuBras(this, "RIGHT");
     if(this.scene.saveSession) {
       this.savingOutput = createWriter("savedSessions/"+this.scene.sessionName+"/skeleton"+this.scene.numberOfSkeletons+".txt");
-      this.savingOutput.println("salvei alguma coisa desse esqueleto");
+      this.savingOutput.println("header");
       this.savingOutput.flush();
     }
     this.appearedLastInFrame = frameCount;
@@ -124,6 +124,7 @@ public class Skeleton{
   
   private void save(){
     // Collect Things to save
+    this.savingOutput.print(" ");
     this.savingOutput.flush();
     this.savingOutput.close();
   }
@@ -134,9 +135,8 @@ public class Skeleton{
   void calculateBodySize(){
     this.bodySize = 0;
     for(Bone bone:this.bones){
-      this.bodySize += bone.estimatedLength;
+      this.bodySize += bone.estimatedLength/24;
     }
-    this.bodySize /= 24;
   }
   
 /**
@@ -151,13 +151,14 @@ public class Skeleton{
   }
   
 /**
- * Variance of position of joints. (average of distances to the center of gravity). Ranges from ~0.2 meters to ~ 0.6 meters.
+ * Variance of position of joints, adjusted by bodySize. (average of distances to the center of gravity). Ranges from ~1.5 to ~ 3.
  */
   void calculateDispersion(){
     this.dispersion = 0;
     for(int j=0; j<25; j++){ 
       this.dispersion += PVector.sub(this.joints[j].estimatedPosition, this.centerOfMass).mag()/25;
     }
+    this.dispersion /= this.bodySize;
     //println("this.dispersion: "+this.dispersion);
   }
   
