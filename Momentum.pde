@@ -34,7 +34,6 @@ class Momentum{
       this.fluid = averageTangentialAccelerationMagnitude/(averageTangentialAccelerationMagnitude+averageRadialAccelerationMagnitude);
       this.harsh = averageRadialAccelerationMagnitude/(averageTangentialAccelerationMagnitude+averageRadialAccelerationMagnitude);
     }
-    println("fluid: "+this.fluid+" harsh: "+this.harsh);
     this.averageFluid = lerp(this.averageFluid, this.fluid, this.smoothStep);
     this.averageHarsh = lerp(this.averageHarsh, this.harsh, this.smoothStep);
     this.averageTotal = lerp(this.averageTotal, this.total, this.smoothStep);
