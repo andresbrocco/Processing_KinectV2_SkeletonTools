@@ -10,19 +10,13 @@ int pdPort = 12000;
 int myPort = 3001;
 Communication communication = new Communication("192.168.15.16", pdPort, myPort);
 
-void setup()
-{
+void setup() {
   frameRate(scene.frameRate_);
   size(500, 500, P3D);
   scene.init();
 }
 
-void draw()
-{
-  for(Skeleton skeleton:scene.activeSkeletons.values()){ //example of consulting feature
-    //println("distanceBetweenHands: "+ skeleton.distanceBetweenHands);
-  }
-  
+void draw() {
   scene.update();
   
   if(scene.drawScene){

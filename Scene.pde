@@ -7,7 +7,7 @@ KinectPV2 kinect = new KinectPV2(this);
  */
 public class Scene{
   public Floor floor;
-  private float frameRate_ = 10;
+  private final float frameRate_ = 10;
   private float cameraTransX = 600;
   private float cameraTransY = 420;
   private float cameraTransZ = -60;
@@ -20,7 +20,7 @@ public class Scene{
   private float currentDeltaT;
   private float previousDeltaT;
   public int numberOfSkeletons = 0;
-  public boolean saveSession = true;
+  public boolean saveSession = false;
   public String sessionName = "";
   public PrintWriter savingOutput;
   public boolean drawScene = true;
@@ -30,9 +30,9 @@ public class Scene{
   public boolean drawHandRadius = false;
   public boolean drawHandStates = false;
   public boolean drawPollock = false;
-  public boolean drawRondDuBras = true;
+  public boolean drawRondDuBras = false;
   public boolean drawMomentum = true;
-  public boolean drawCenterOfMass = true;
+  public boolean drawCenterOfMass = false;
   public boolean loadFloorCalibration = false;
   
   public Scene(){
@@ -137,14 +137,12 @@ public class Scene{
     beginCamera();
     camera();
     translate(this.cameraTransX, this.cameraTransY, this.cameraTransZ);
-    /* Testing Steering Wheel rotating the scene:*/
-    
-    /*for (Skeleton skeleton:this.activeSkeletons.values()) {
+    /* Testing Steering Wheel rotating the scene:
+    for (Skeleton skeleton:this.activeSkeletons.values()) {
       this.cameraRotX = this.cameraRotX + skeleton.steeringWheel.pitchStep;
       this.cameraRotY = this.cameraRotY + skeleton.steeringWheel.yawStep;
       this.cameraRotZ = this.cameraRotZ + skeleton.steeringWheel.rollStep;
     }*/
-    
     rotateX(this.cameraRotX);
     rotateY(this.cameraRotY);
     //rotateZ(this.cameraRotZ);
