@@ -1,3 +1,9 @@
+/**
+ * This class analyses the quality of the movement of the whole body.
+ * The total momentum is the sum of accelerations of all joints.
+ * The fluid momentum is the percentage of the total that is tangential to the previous movement.
+ * The harsh momentum is the percentage of the total that is radial to the previous movement.
+ */
 class Momentum{
   private Skeleton skeleton;
   private final float smoothStep = 0.3; //
