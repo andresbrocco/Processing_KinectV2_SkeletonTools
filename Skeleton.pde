@@ -124,7 +124,7 @@ public class Skeleton{
     this.rightHandRondDuBras.update();
     this.momentum.update();
     this.appearedLastInFrame = frameCount;
-    if(this.scene.saveSession) this.save();
+    if(this.scene.saveSession && frameCount%this.scene.frameRate_==0) this.save();
   }
   
   private void save(){

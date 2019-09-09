@@ -20,7 +20,7 @@ public class Scene{
   private float currentDeltaT;
   private float previousDeltaT;
   public int numberOfSkeletons = 0;
-  public boolean saveSession = false;
+  public boolean saveSession = true;
   public String sessionName = "";
   public PrintWriter savingOutput;
   public boolean drawScene = true;
@@ -31,9 +31,9 @@ public class Scene{
   public boolean drawHandStates = false;
   public boolean drawPollock = false;
   public boolean drawRondDuBras = false;
-  public boolean drawMomentum = true;
+  public boolean drawMomentum = false;
   public boolean drawCenterOfMass = false;
-  public boolean loadFloorCalibration = false;
+  public boolean loadFloorCalibration = true;
   
   public Scene(){
     this.currentDeltaT = 1/this.frameRate_; 
